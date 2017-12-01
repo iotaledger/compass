@@ -2,6 +2,8 @@ package coo;
 
 import cfb.pearldiver.PearlDiverLocalPoW;
 import com.beust.jcommander.JCommander;
+import coo.conf.BaseConfiguration;
+import coo.conf.Configuration;
 import jota.IotaAPI;
 import jota.dto.response.GetNodeInfoResponse;
 import jota.dto.response.GetTransactionsToApproveResponse;
@@ -18,7 +20,6 @@ public class Coordinator {
   private final URL node;
   private final MilestoneDatabase db;
   private final IotaAPI api;
-  private final int MWM;
   private final Configuration config;
 
   private final Logger log = Logger.getLogger("COO");
@@ -34,7 +35,6 @@ public class Coordinator {
     this.config = config;
     this.node = new URL(config.host);
     this.db = new MilestoneDatabase(config.layersPath, config.seed);
-    this.MWM = config.MWM;
 
     this.api = new IotaAPI.Builder().localPoW(new PearlDiverLocalPoW())
         .protocol(this.node.getProtocol())
@@ -157,7 +157,7 @@ public class Coordinator {
       latestMilestone++;
 
       log.info("Issuing milestone: " + latestMilestone);
-      List<Transaction> txs = db.createMilestone(trunk, branch, latestMilestone, MWM);
+      List<Transaction> txs = db.createMilestone(trunk, branch, latestMilestone, config.MWM);
 
 
       if (config.broadcast) {

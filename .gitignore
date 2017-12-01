@@ -1,6 +1,9 @@
 layers/
 addresses.csv
 
+*.iml
+*.csv
+
 .gradle
 /build/
 
