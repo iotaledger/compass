@@ -74,7 +74,7 @@ public class ShadowingCoordinator {
   }
 
   public void start() throws Exception {
-    String trunk = MilestoneDatabase.EMPTY_HASH;
+    String trunk = config.initialTrunk;
     String branch;
 
     int newMilestoneIdx = config.index;

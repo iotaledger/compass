@@ -1,6 +1,7 @@
 package coo.conf;
 
 import com.beust.jcommander.Parameter;
+import com.google.common.base.Strings;
 
 public class ShadowingConfiguration extends BaseConfiguration {
   @Parameter(names = "-milestonesCSV", description = "csv (index, tail) of old milestones")
@@ -20,4 +21,7 @@ public class ShadowingConfiguration extends BaseConfiguration {
 
   @Parameter(names = "-broadcastBatch", description = "Rate at which broadcasts are batched")
   public int broadcastBatch = 666;
+
+  @Parameter(names = "-initialTrunk", description = "Initial trunk that is referenced")
+  public String initialTrunk = Strings.repeat("9", 81);
 }
