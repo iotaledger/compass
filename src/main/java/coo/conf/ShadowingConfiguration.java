@@ -17,4 +17,7 @@ public class ShadowingConfiguration extends BaseConfiguration {
 
   @Parameter(names = "-index", description = "Starting milestone index (inclusive)", required = true)
   public Integer index;
+
+  @Parameter(names = "-broadcastBatch", description = "Rate at which broadcasts are batched")
+  public int broadcastBatch = 666;
 }

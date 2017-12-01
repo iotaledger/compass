@@ -75,22 +75,31 @@ public class ShadowingCoordinator {
 
   public void start() throws Exception {
     String trunk = MilestoneDatabase.EMPTY_HASH;
-    String branch = MilestoneDatabase.EMPTY_HASH;
+    String branch;
 
     int newMilestoneIdx = config.index;
     log.info("Starting milestone index: {}", newMilestoneIdx);
+
+    List<Transaction> transactions = new ArrayList<>();
 
     for (OldMilestone oldMilestone : oldMilestones) {
       branch = oldMilestone.tail;
 
       List<Transaction> txs = db.createMilestone(trunk, branch, newMilestoneIdx, config.MWM);
+      transactions.addAll(txs);
       log.info("Created milestone {}({}) referencing {} and {}", newMilestoneIdx, txs.get(0).getHash(), trunk, branch);
 
-      if (config.broadcast) {
-        for (Transaction tx : txs) {
-          api.broadcastAndStore(tx.toTrytes());
+      if (transactions.size() >= config.broadcastBatch) {
+        log.info("Collected {} transactions for broadcast.", transactions.size());
+
+        if (config.broadcast) {
+          api.broadcastAndStore(transactions.stream().map(Transaction::toTrytes).toArray(String[]::new));
+          log.info("Broadcasted {} transactions.", transactions.size());
+        } else {
+          log.info("Skipping broadcast.");
         }
-        log.info("Broadcasted milestone");
+
+        transactions.clear();
       }
 
       newMilestoneIdx++;
