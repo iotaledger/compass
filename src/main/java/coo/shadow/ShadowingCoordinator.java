@@ -69,6 +69,7 @@ public class ShadowingCoordinator {
         .collect(Collectors.toList());
 
     log.info("Loaded {} old milestones", oldMilestones.size());
+    log.info("Old milestone indices (min, max): [{}, {}]", oldMilestones.get(0).milestoneIdx, oldMilestones.get(oldMilestones.size()-1).milestoneIdx);
   }
 
   public void start() throws Exception {
