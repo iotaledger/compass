@@ -66,18 +66,19 @@ public class ShadowingCoordinator {
       return new OldMilestone(idx, tail);
     })
         .filter(m -> m.milestoneIdx >= config.oldMinIndex && m.milestoneIdx <= config.oldMaxIndex)
+        .sorted(Comparator.comparingLong(o -> o.milestoneIdx))
         .collect(Collectors.toList());
 
     log.info("Loaded {} old milestones", oldMilestones.size());
-    log.info("Old milestone indices (min, max): [{}, {}]", oldMilestones.get(0).milestoneIdx, oldMilestones.get(oldMilestones.size()-1).milestoneIdx);
+    log.info("Old milestone indices (min, max): [{}, {}]", oldMilestones.get(0).milestoneIdx, oldMilestones.get(oldMilestones.size() - 1).milestoneIdx);
   }
 
   public void start() throws Exception {
     String trunk = MilestoneDatabase.EMPTY_HASH;
     String branch = MilestoneDatabase.EMPTY_HASH;
 
-    System.err.println("config: " + config.index);
     int newMilestoneIdx = config.index;
+    log.info("Starting milestone index: {}", newMilestoneIdx);
 
     for (OldMilestone oldMilestone : oldMilestones) {
       branch = oldMilestone.tail;
@@ -90,8 +91,6 @@ public class ShadowingCoordinator {
           api.broadcastAndStore(tx.toTrytes());
         }
         log.info("Broadcasted milestone");
-
-        Thread.sleep(500);
       }
 
       newMilestoneIdx++;
