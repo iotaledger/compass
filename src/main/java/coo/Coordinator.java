@@ -164,6 +164,7 @@ public class Coordinator {
         for (Transaction tx : txs) {
           api.broadcastAndStore(tx.toTrytes());
         }
+        log.info("Broadcasted milestone.");
       }
 
       log.info("Emitted milestone: " + latestMilestone);
