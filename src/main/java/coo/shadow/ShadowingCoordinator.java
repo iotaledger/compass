@@ -5,6 +5,7 @@ import com.beust.jcommander.JCommander;
 import coo.MilestoneDatabase;
 import coo.conf.ShadowingConfiguration;
 import jota.IotaAPI;
+import jota.error.ArgumentException;
 import jota.model.Transaction;
 import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;
@@ -73,6 +74,19 @@ public class ShadowingCoordinator {
     log.info("Old milestone indices (min, max): [{}, {}]", oldMilestones.get(0).milestoneIdx, oldMilestones.get(oldMilestones.size() - 1).milestoneIdx);
   }
 
+  private void broadcast(List<Transaction> transactions) throws ArgumentException {
+    log.info("Collected {} transactions for broadcast.", transactions.size());
+
+    if (config.broadcast) {
+      api.broadcastAndStore(transactions.stream().map(Transaction::toTrytes).toArray(String[]::new));
+      log.info("Broadcasted {} transactions.", transactions.size());
+    } else {
+      log.info("Skipping broadcast.");
+    }
+
+    transactions.clear();
+  }
+
   public void start() throws Exception {
     String trunk = config.initialTrunk;
     String branch;
@@ -90,22 +104,16 @@ public class ShadowingCoordinator {
       log.info("Created milestone {}({}) referencing {} and {}", newMilestoneIdx, txs.get(0).getHash(), trunk, branch);
 
       if (transactions.size() >= config.broadcastBatch) {
-        log.info("Collected {} transactions for broadcast.", transactions.size());
-
-        if (config.broadcast) {
-          api.broadcastAndStore(transactions.stream().map(Transaction::toTrytes).toArray(String[]::new));
-          log.info("Broadcasted {} transactions.", transactions.size());
-        } else {
-          log.info("Skipping broadcast.");
-        }
-
-        transactions.clear();
+        broadcast(transactions);
       }
+
 
       newMilestoneIdx++;
 
       trunk = txs.get(0).getHash();
     }
+
+    broadcast(transactions);
 
     log.info("Shadowing complete.");
   }
