@@ -26,6 +26,7 @@ public class Coordinator {
   private List<String> confirmedTips = new ArrayList<>();
 
   private int latestMilestone;
+  private String latestMilestoneHash;
   private long latestMilestoneTime;
 
   private long MILESTONE_TICK;
@@ -127,29 +128,35 @@ public class Coordinator {
   }
 
   public void start() throws ArgumentException, InterruptedException {
-    boolean bootstrap = config.bootstrap;
+    int bootstrap = config.bootstrap ? 0 : 3;
+    log.info("Bootstrap mode: " + bootstrap);
 
     while (true) {
       String trunk, branch;
       int nextDepth;
       GetNodeInfoResponse nodeInfoResponse = api.getNodeInfo();
 
-      if (!nodeIsSolid(nodeInfoResponse) && !bootstrap) {
+      if (bootstrap == 2 && !nodeIsSolid(nodeInfoResponse)) {
         log.warning("Node not solid.");
         Thread.sleep(config.unsolidDelay);
         continue;
       }
 
       // Node is solid.
-      if (bootstrap) {
+      if (bootstrap == 0) {
         log.info("Bootstrapping network.");
         trunk = MilestoneDatabase.EMPTY_HASH;
         branch = MilestoneDatabase.EMPTY_HASH;
-        bootstrap = false;
+        bootstrap = 1;
+      } else if (bootstrap < 3) {
+        log.info("Reusing last milestone.");
+        trunk = latestMilestoneHash;
+        branch = MilestoneDatabase.EMPTY_HASH;
+        bootstrap++;
       } else {
         // As it's solid,
         // GetTransactionsToApprove will return tips referencing latest milestone.
-        GetTransactionsToApproveResponse txToApprove = api.getTransactionsToApprove(DEPTH);
+        GetTransactionsToApproveResponse txToApprove = api.getTransactionsToApprove(DEPTH, nodeInfoResponse.getLatestMilestone());
         trunk = txToApprove.getTrunkTransaction();
         branch = txToApprove.getBranchTransaction();
       }
@@ -157,7 +164,9 @@ public class Coordinator {
       latestMilestone++;
 
       log.info("Issuing milestone: " + latestMilestone);
+      log.info("Trunk: " + trunk + " Branch: " + branch);
       List<Transaction> txs = db.createMilestone(trunk, branch, latestMilestone, config.MWM);
+      latestMilestoneHash = txs.get(0).getHash();
 
 
       if (config.broadcast) {
@@ -168,10 +177,14 @@ public class Coordinator {
       }
 
       log.info("Emitted milestone: " + latestMilestone);
-      log.info("Trunk: " + trunk + " Branch: " + branch);
 
 
-      nextDepth = getNextDepth(DEPTH, latestMilestoneTime);
+      if(bootstrap >= 3) {
+        nextDepth = getNextDepth(DEPTH, latestMilestoneTime);
+      } else {
+        nextDepth = DEPTH;
+      }
+
       log.info("Depth: " + DEPTH + " -> " + nextDepth);
 
       DEPTH = nextDepth;
