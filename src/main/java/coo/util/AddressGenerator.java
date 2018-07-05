@@ -15,25 +15,26 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class AddressGenerator {
-    public static SpongeFactory.Mode MODE = SpongeFactory.Mode.CURLP27;
+    public final SpongeFactory.Mode MODE;
     public final int COUNT;
     private final String SEED;
     private final int[] SEEDt;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public AddressGenerator(String seed, int depth) {
+    public AddressGenerator(SpongeFactory.Mode mode, String seed, int depth) {
         this.SEED = seed;
         this.SEEDt = Converter.trits(seed);
         this.COUNT = 1 << depth;
+        this.MODE = mode;
     }
 
     public static void main(String[] args) throws IOException {
-        if (args.length != 3) {
-            throw new IllegalArgumentException("Usage: <seed> <depth> <outfile>");
+        if (args.length != 4) {
+            throw new IllegalArgumentException("Usage: <mode> <seed> <depth> <outfile>");
         }
 
-        new AddressGenerator(args[0], Integer.parseInt(args[1])).work(args[2]);
+        new AddressGenerator(SpongeFactory.Mode.valueOf(args[0]), args[1], Integer.parseInt(args[2])).work(args[3]);
     }
 
     public String calculateAddress(int idx) {

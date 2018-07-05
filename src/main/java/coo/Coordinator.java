@@ -2,13 +2,13 @@ package coo;
 
 import cfb.pearldiver.PearlDiverLocalPoW;
 import com.beust.jcommander.JCommander;
-import coo.conf.BaseConfiguration;
 import coo.conf.Configuration;
 import jota.IotaAPI;
 import jota.dto.response.GetNodeInfoResponse;
 import jota.dto.response.GetTransactionsToApproveResponse;
 import jota.error.ArgumentException;
 import jota.model.Transaction;
+import jota.pow.SpongeFactory;
 
 import java.io.IOException;
 import java.net.URL;
@@ -18,7 +18,7 @@ import java.util.logging.Logger;
 
 public class Coordinator {
   private final URL node;
-  private final MilestoneDatabase db;
+  private final MilestoneSource db;
   private final IotaAPI api;
   private final Configuration config;
 
@@ -35,7 +35,7 @@ public class Coordinator {
   public Coordinator(Configuration config) throws IOException {
     this.config = config;
     this.node = new URL(config.host);
-    this.db = new MilestoneDatabase(config.layersPath, config.seed);
+    this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.mode), config.layersPath, config.seed);
 
     this.api = new IotaAPI.Builder().localPoW(new PearlDiverLocalPoW())
         .protocol(this.node.getProtocol())
@@ -84,7 +84,7 @@ public class Coordinator {
     if (!config.inception && (nodeInfo.getLatestSolidSubtangleMilestoneIndex() != latestMilestone))
       return false;
 
-    if (nodeInfo.getLatestMilestone().equals(MilestoneDatabase.EMPTY_HASH) || nodeInfo.getLatestSolidSubtangleMilestone().equals(MilestoneDatabase.EMPTY_HASH))
+    if (nodeInfo.getLatestMilestone().equals(MilestoneSource.EMPTY_HASH) || nodeInfo.getLatestSolidSubtangleMilestone().equals(MilestoneSource.EMPTY_HASH))
       return false;
 
     return true;
@@ -96,7 +96,7 @@ public class Coordinator {
 
     if (config.bootstrap) {
       log.info("Bootstrapping.");
-      if (!nodeInfoResponse.getLatestSolidSubtangleMilestone().equals(MilestoneDatabase.EMPTY_HASH) || !nodeInfoResponse.getLatestMilestone().equals(MilestoneDatabase.EMPTY_HASH)) {
+      if (!nodeInfoResponse.getLatestSolidSubtangleMilestone().equals(MilestoneSource.EMPTY_HASH) || !nodeInfoResponse.getLatestMilestone().equals(MilestoneSource.EMPTY_HASH)) {
         throw new RuntimeException("Network already bootstrapped");
       }
     }
@@ -145,13 +145,13 @@ public class Coordinator {
       // Node is solid.
       if (bootstrap == 0) {
         log.info("Bootstrapping network.");
-        trunk = MilestoneDatabase.EMPTY_HASH;
-        branch = MilestoneDatabase.EMPTY_HASH;
+        trunk = MilestoneSource.EMPTY_HASH;
+        branch = MilestoneSource.EMPTY_HASH;
         bootstrap = 1;
       } else if (bootstrap < 3) {
         log.info("Reusing last milestone.");
         trunk = latestMilestoneHash;
-        branch = MilestoneDatabase.EMPTY_HASH;
+        branch = MilestoneSource.EMPTY_HASH;
         bootstrap++;
       } else {
         // As it's solid,
@@ -179,7 +179,7 @@ public class Coordinator {
       log.info("Emitted milestone: " + latestMilestone);
 
 
-      if(bootstrap >= 3) {
+      if (bootstrap >= 3) {
         nextDepth = getNextDepth(DEPTH, latestMilestoneTime);
       } else {
         nextDepth = DEPTH;

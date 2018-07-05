@@ -1,4 +1,5 @@
 import coo.util.AddressGenerator;
+import jota.pow.SpongeFactory;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -12,7 +13,7 @@ public class AddressGeneratorTest {
 
         int depth = 3;
 
-        AddressGenerator gen = new AddressGenerator(seed, depth);
+        AddressGenerator gen = new AddressGenerator(SpongeFactory.Mode.KERL, seed, depth);
         List<String> addresses = gen.calculateAllAddresses();
 
         Assert.assertEquals(addresses.size(), 1 << depth);

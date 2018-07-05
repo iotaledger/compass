@@ -22,18 +22,24 @@ import java.util.stream.Stream;
 public class MerkleTreeCalculator {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
+    private final SpongeFactory.Mode MODE;
+
     public static void main(String[] args) throws IOException {
         if (args.length != 2) {
-            throw new IllegalArgumentException("Usage: <addresses.csv> <out dir>");
+            throw new IllegalArgumentException("Usage: <mode> <addresses.csv> <out dir>");
         }
 
-        Path layers = Paths.get(args[1]);
+        Path layers = Paths.get(args[2]);
         try {
             Files.createDirectory(layers);
         } catch (IOException e) {
         }
 
-        (new MerkleTreeCalculator()).process(args[0], layers);
+        (new MerkleTreeCalculator(SpongeFactory.Mode.valueOf(args[0]))).process(args[1], layers);
+    }
+
+    public MerkleTreeCalculator(SpongeFactory.Mode mode) {
+        this.MODE = mode;
     }
 
     private List<String> loadAddresses(String addressCsvPath) throws IOException {
@@ -50,7 +56,7 @@ public class MerkleTreeCalculator {
         final List<String> layer = Collections.unmodifiableList(inLayer);
 
         return IntStream.range(0, layer.size() / 2).mapToObj((int idx) -> {
-            ICurl sp = SpongeFactory.create(SpongeFactory.Mode.CURLP27);
+            ICurl sp = SpongeFactory.create(MODE);
             int[] t1 = Converter.trits(layer.get(idx * 2));
             int[] t2 = Converter.trits(layer.get(idx * 2 + 1));
 
