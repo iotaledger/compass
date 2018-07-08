@@ -3,6 +3,7 @@ package coo;
 import cfb.pearldiver.PearlDiverLocalPoW;
 import com.google.common.base.Strings;
 import coo.crypto.ISS;
+import jota.IotaLocalPoW;
 import jota.model.Transaction;
 import jota.pow.ICurl;
 import jota.pow.JCurl;
@@ -18,10 +19,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class MilestoneDatabase extends MilestoneSource {
+
+  private final Logger log = Logger.getLogger("MilestoneDatabase");
 
   private final SpongeFactory.Mode MODE;
   private final String SEED;
@@ -51,7 +55,13 @@ public class MilestoneDatabase extends MilestoneSource {
   @Override
   public List<Transaction> createMilestone(String trunk, String branch, int index, int mwm) {
     List<Transaction> txs = new ArrayList<>();
-    PearlDiverLocalPoW pow = new PearlDiverLocalPoW();
+
+    IotaLocalPoW pow;
+    if (MODE == SpongeFactory.Mode.KERL) {
+      pow = new KerlPoW();
+    } else {
+      pow = new PearlDiverLocalPoW();
+    }
 
     List<String> leafSiblings = siblings(index, layers);
     String siblingsTrytes = leafSiblings.stream().collect(Collectors.joining(""));
@@ -95,18 +105,20 @@ public class MilestoneDatabase extends MilestoneSource {
     tx0.setTag(tag);
     tx0.setNonce(Strings.repeat("9", 27));
 
-    String bundleHash = generateBundleHash(tx0.toTrytes(), tx1.toTrytes());
-
-    tx0.setBundle(bundleHash);
-    tx1.setBundle(bundleHash);
 
     if (MODE == SpongeFactory.Mode.KERL) {
       boolean hashContainsM = false;
       int attempts = 0;
       ICurl sponge = SpongeFactory.create(SpongeFactory.Mode.KERL);
-      int[] hashTrits = new int[243];
+      int[] hashTrits = new int[JCurl.HASH_LENGTH];
       do {
+        String bundleHash = generateBundleHash(tx0.toTrytes(), tx1.toTrytes());
+
+        tx0.setBundle(bundleHash);
+        tx1.setBundle(bundleHash);
+
         attempts++;
+
         tx1 = new Transaction(pow.performPoW(tx1.toTrytes(), mwm));
 
         sponge.reset();
@@ -127,16 +139,21 @@ public class MilestoneDatabase extends MilestoneSource {
           }
         }
       } while (hashContainsM);
-      System.err.println("KERL milestone generation took attempts: " + attempts);
+      log.info("KERL milestone generation took attempts: " + attempts);
 
       String kerlHash = Converter.trytes(hashTrits);
       tx0.setSignatureFragments(createSignature(index, kerlHash));
+      tx0.setTrunkTransaction(kerlHash);
     } else {
+      String bundleHash = generateBundleHash(tx0.toTrytes(), tx1.toTrytes());
+
+      tx0.setBundle(bundleHash);
+      tx1.setBundle(bundleHash);
+
       tx1 = new Transaction(pow.performPoW(tx1.toTrytes(), mwm));
       tx0.setSignatureFragments(createSignature(index, tx1.getHash()));
+      tx0.setTrunkTransaction(tx1.getHash());
     }
-
-    tx0.setTrunkTransaction(tx1.getHash());
 
 
     tx0 = new Transaction(pow.performPoW(tx0.toTrytes(), mwm));

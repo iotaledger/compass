@@ -18,7 +18,7 @@ public class MilestoneTest {
   private void runForMode(SpongeFactory.Mode mode) throws IOException {
     final String seed = Util.nextSeed();
     final int depth = 4;
-    final int MWM = 14;
+    final int MWM = 4;
 
     final AddressGenerator gen = new AddressGenerator(mode, seed, depth);
     final List<String> addresses = gen.calculateAllAddresses();
