@@ -25,7 +25,7 @@ public class MerkleTreeCalculator {
     private final SpongeFactory.Mode MODE;
 
     public static void main(String[] args) throws IOException {
-        if (args.length != 2) {
+        if (args.length != 3) {
             throw new IllegalArgumentException("Usage: <mode> <addresses.csv> <out dir>");
         }
 
