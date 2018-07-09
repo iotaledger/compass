@@ -2,6 +2,7 @@ package coo;
 
 import cfb.pearldiver.PearlDiverLocalPoW;
 import com.google.common.base.Strings;
+import coo.crypto.Hasher;
 import coo.crypto.ISS;
 import jota.IotaLocalPoW;
 import jota.model.Transaction;
@@ -45,6 +46,11 @@ public class MilestoneDatabase extends MilestoneSource {
     MODE = mode;
     ROOT = layers.get(0).get(0);
     SEED = seed;
+  }
+
+  @Override
+  public SpongeFactory.Mode getMode() {
+    return MODE;
   }
 
   @Override

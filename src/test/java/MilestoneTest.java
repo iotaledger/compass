@@ -1,10 +1,10 @@
 import coo.MilestoneDatabase;
 import coo.MilestoneSource;
+import coo.crypto.Hasher;
 import coo.crypto.ISS;
 import coo.util.AddressGenerator;
 import coo.util.MerkleTreeCalculator;
 import jota.model.Transaction;
-import jota.pow.ICurl;
 import jota.pow.SpongeFactory;
 import jota.utils.Converter;
 import org.junit.Assert;
@@ -36,15 +36,7 @@ public class MilestoneTest {
 
       Assert.assertEquals(db.getRoot(), tx0.getAddress());
       int[] signatureTrits = Converter.trits(tx0.getSignatureFragments());
-      int[] trunkTrits;
-      if (mode == SpongeFactory.Mode.KERL) {
-        ICurl sponge = SpongeFactory.create(SpongeFactory.Mode.KERL);
-        trunkTrits = new int[243];
-        sponge.absorb(Converter.trits(tx1.toTrytes()));
-        sponge.squeeze(trunkTrits);
-      } else {
-        trunkTrits = Converter.trits(tx1.getHash());
-      }
+      int[] trunkTrits = Converter.trits(Hasher.hashTrytes(mode, tx1.toTrytes()));
       trunkTrits = ISS.normalizedBundle(trunkTrits);
 
       int[] signatureAddress = ISS.address(mode, ISS.digest(mode, Arrays.copyOf(trunkTrits, 27), signatureTrits));

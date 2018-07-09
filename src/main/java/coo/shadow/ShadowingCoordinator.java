@@ -5,6 +5,7 @@ import com.beust.jcommander.JCommander;
 import coo.MilestoneDatabase;
 import coo.MilestoneSource;
 import coo.conf.ShadowingConfiguration;
+import coo.crypto.Hasher;
 import jota.IotaAPI;
 import jota.dto.response.GetNodeInfoResponse;
 import jota.dto.response.GetTransactionsToApproveResponse;
@@ -108,7 +109,8 @@ public class ShadowingCoordinator {
 
       List<Transaction> txs = db.createMilestone(trunk, branch, newMilestoneIdx, config.MWM);
       transactions.addAll(txs);
-      log.info("Created milestone {}({}) referencing {} and {}", newMilestoneIdx, txs.get(0).getHash(), trunk, branch);
+      log.info("Created milestone {}({}) referencing {} and {}", newMilestoneIdx, Hasher.hashTrytes(db.getMode(),
+          txs.get(0).toTrytes()), trunk, branch);
 
       if (transactions.size() >= config.broadcastBatch) {
         broadcast(transactions);
@@ -142,7 +144,7 @@ public class ShadowingCoordinator {
 
       newMilestoneIdx++;
 
-      trunk = txs.get(0).getHash();
+      trunk = Hasher.hashTrytes(db.getMode(), txs.get(0).toTrytes());
     }
 
     broadcast(transactions);
