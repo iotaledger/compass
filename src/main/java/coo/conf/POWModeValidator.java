@@ -25,27 +25,16 @@
 
 package coo.conf;
 
-import com.beust.jcommander.Parameter;
+import com.beust.jcommander.IParameterValidator;
+import com.beust.jcommander.ParameterException;
+import jota.pow.SpongeFactory;
 
-public class Configuration extends BaseConfiguration {
-  @Parameter(names = "-bootstrap", description = "Bootstrap network")
-  public boolean bootstrap = false;
-
-  @Parameter(names = "-tick", description = "Milestone tick in milliseconds", required = true)
-  public int tick = 15000;
-
-  @Parameter(names = "-depth", description = "Starting depth")
-  public int depth = 3;
-
-  @Parameter(names = "-depthScale", description = "Time scale factor for depth decrease")
-  public float depthScale = 1.01f;
-
-  @Parameter(names = "-unsolidDelay", description = "Delay if node is not solid in milliseconds")
-  public int unsolidDelay = 5000;
-
-  @Parameter(names = "-inception", description = "Only use this if you know what you're doing.")
-  public boolean inception = false;
-
-  @Parameter(names = "-index", description = "Starting milestone index (inclusive)")
-  public Integer index;
+public class POWModeValidator implements IParameterValidator {
+  @Override
+  public void validate(String name, String value) throws ParameterException {
+    SpongeFactory.Mode mode = SpongeFactory.Mode.valueOf(value);
+    if (mode != SpongeFactory.Mode.CURLP81 && mode != SpongeFactory.Mode.KERL) {
+      throw new ParameterException("Invalid mode provided for PoW.");
+    }
+  }
 }

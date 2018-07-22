@@ -1,3 +1,28 @@
+/*
+ * This file is part of TestnetCOO.
+ *
+ * Copyright (C) 2018 IOTA Stiftung
+ * TestnetCOO is Copyright (C) 2017-2018 IOTA Stiftung
+ *
+ * TestnetCOO is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * TestnetCOO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with TestnetCOO.  If not, see:
+ *      http://www.gnu.org/licenses/
+ *
+ * For more information contact:
+ *     IOTA Stiftung <contact@iota.org>
+ *     https://www.iota.org/
+ */
+
 package coo;
 
 import com.beust.jcommander.JCommander;
@@ -8,16 +33,14 @@ import jota.dto.response.GetNodeInfoResponse;
 import jota.dto.response.GetTransactionsToApproveResponse;
 import jota.error.ArgumentException;
 import jota.model.Transaction;
-import jota.pow.ICurl;
-import jota.pow.JCurl;
 import jota.pow.SpongeFactory;
-import jota.utils.Converter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 public class Coordinator {
   private final URL node;
@@ -25,7 +48,7 @@ public class Coordinator {
   private final IotaAPI api;
   private final Configuration config;
 
-  private final Logger log = Logger.getLogger("COO");
+  private final Logger log = LoggerFactory.getLogger("COO");
   private List<String> confirmedTips = new ArrayList<>();
 
   private int latestMilestone;
@@ -38,7 +61,7 @@ public class Coordinator {
   public Coordinator(Configuration config) throws IOException {
     this.config = config;
     this.node = new URL(config.host);
-    this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.mode), config.layersPath, config.seed);
+    this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.powMode), SpongeFactory.Mode.valueOf(config.sigMode), config.layersPath, config.seed);
 
     this.api = new IotaAPI.Builder().localPoW(new KerlPoW())
         .protocol(this.node.getProtocol())
@@ -59,18 +82,28 @@ public class Coordinator {
     coo.start();
   }
 
-  protected int getNextDepth(int depth, long lastTimestamp) {
+  /**
+   * Computes the next depth to use for getTransactionsToApprove call.
+   *
+   * @param currentDepth
+   * @param lastTimestamp
+   * @return
+   */
+  protected int getNextDepth(int currentDepth, long lastTimestamp) {
     long now = System.currentTimeMillis();
     int nextDepth;
 
     log.info("Timestamp delta: " + ((now - lastTimestamp)));
 
     if ((now - lastTimestamp) > ((int) (config.depthScale * Long.valueOf(MILESTONE_TICK).floatValue()))) {
-      nextDepth = depth * 2 / 3;
+      // decrease depth as we took too long.
+      nextDepth = currentDepth * 2 / 3;
     } else {
-      nextDepth = depth * 4 / 3;
+      // increase depth as we seem to have room for growth
+      nextDepth = currentDepth * 4 / 3;
     }
 
+    // hardcoded lower & upper threshold
     if (nextDepth < 3) {
       nextDepth = 3;
     } else if (nextDepth > 1000) {
@@ -80,6 +113,12 @@ public class Coordinator {
     return nextDepth;
   }
 
+  /**
+   * Checks that node is solid, bootstrapped and on latest milestone.
+   *
+   * @param nodeInfo
+   * @return true if node is solid
+   */
   protected boolean nodeIsSolid(GetNodeInfoResponse nodeInfo) {
     if (nodeInfo.getLatestSolidSubtangleMilestoneIndex() != nodeInfo.getLatestMilestoneIndex())
       return false;
@@ -93,7 +132,10 @@ public class Coordinator {
     return true;
   }
 
-  public void setup() {
+  /**
+   * Sets up the coordinator and validates arguments
+   */
+  private void setup() {
     log.info("Setup");
     GetNodeInfoResponse nodeInfoResponse = api.getNodeInfo();
 
@@ -107,7 +149,7 @@ public class Coordinator {
     if (config.index != null) {
       latestMilestone = config.index;
     } else {
-      // = 0 if bootstrap
+      // = node's start milestone index if bootstrap
       latestMilestone = nodeInfoResponse.getLatestMilestoneIndex();
     }
 
@@ -120,7 +162,7 @@ public class Coordinator {
     if (MILESTONE_TICK <= 0) {
       throw new IllegalArgumentException("MILESTONE_TICK must be > 0");
     }
-    log.info("Setting milestone tick rate to: " + MILESTONE_TICK);
+    log.info("Setting milestone tick rate (ms) to: " + MILESTONE_TICK);
 
 
     DEPTH = config.depth;
@@ -130,9 +172,7 @@ public class Coordinator {
     log.info("Setting initial depth to: " + DEPTH);
   }
 
-  public void start() throws ArgumentException, InterruptedException {
-    int[] scratchpad = new int[JCurl.HASH_LENGTH];
-
+  private void start() throws ArgumentException, InterruptedException {
     int bootstrap = config.bootstrap ? 0 : 3;
     log.info("Bootstrap mode: " + bootstrap);
 
@@ -142,7 +182,7 @@ public class Coordinator {
       GetNodeInfoResponse nodeInfoResponse = api.getNodeInfo();
 
       if (bootstrap == 2 && !nodeIsSolid(nodeInfoResponse)) {
-        log.warning("Node not solid.");
+        log.warn("Node not solid.");
         Thread.sleep(config.unsolidDelay);
         continue;
       }
@@ -154,6 +194,7 @@ public class Coordinator {
         branch = MilestoneSource.EMPTY_HASH;
         bootstrap = 1;
       } else if (bootstrap < 3) {
+        // Bootstrapping means creating a chain of milestones without pulling in external transactions.
         log.info("Reusing last milestone.");
         trunk = latestMilestoneHash;
         branch = MilestoneSource.EMPTY_HASH;
@@ -172,7 +213,7 @@ public class Coordinator {
       log.info("Trunk: " + trunk + " Branch: " + branch);
       List<Transaction> txs = db.createMilestone(trunk, branch, latestMilestone, config.MWM);
 
-      latestMilestoneHash = Hasher.hashTrytes(db.getMode(), txs.get(0).toTrytes());
+      latestMilestoneHash = Hasher.hashTrytes(db.getPoWMode(), txs.get(0).toTrytes());
 
       if (config.broadcast) {
         for (Transaction tx : txs) {
@@ -182,7 +223,6 @@ public class Coordinator {
       }
 
       log.info("Emitted milestone: " + latestMilestone);
-
 
       if (bootstrap >= 3) {
         nextDepth = getNextDepth(DEPTH, latestMilestoneTime);

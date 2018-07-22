@@ -1,3 +1,28 @@
+/*
+ * This file is part of TestnetCOO.
+ *
+ * Copyright (C) 2018 IOTA Stiftung
+ * TestnetCOO is Copyright (C) 2017-2018 IOTA Stiftung
+ *
+ * TestnetCOO is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * TestnetCOO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with TestnetCOO.  If not, see:
+ *      http://www.gnu.org/licenses/
+ *
+ * For more information contact:
+ *     IOTA Stiftung <contact@iota.org>
+ *     https://www.iota.org/
+ */
+
 package coo.shadow;
 
 import cfb.pearldiver.PearlDiverLocalPoW;
@@ -25,6 +50,13 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+
+/**
+ * As opposed to the regular `coo.Coordinator`, this coordinator will issue shadow milestones for an existing list of milestones.
+ * This is useful if you want to migrate an existing Coordinator to a new seed or hashing method.
+ * <p>
+ * !!! *NOTE* that the IRI node this ShadowingCoordinator talks to should already be configured to use the new Coordinator address !!!
+ */
 public class ShadowingCoordinator {
   private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -36,7 +68,7 @@ public class ShadowingCoordinator {
 
   public ShadowingCoordinator(ShadowingConfiguration config) throws IOException {
     this.config = config;
-    this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.mode), config.layersPath, config.seed);
+    this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.powMode), SpongeFactory.Mode.valueOf(config.sigMode), config.layersPath, config.seed);
     this.node = new URL(config.host);
     this.api = new IotaAPI.Builder().localPoW(new PearlDiverLocalPoW())
         .protocol(this.node.getProtocol())
@@ -57,7 +89,12 @@ public class ShadowingCoordinator {
     coo.start();
   }
 
-  public void setup() throws Exception {
+  /**
+   * Configures this `ShadowingCoordinator` instance and validates parameters
+   *
+   * @throws Exception
+   */
+  private void setup() throws Exception {
     if (config.oldRoot != null) {
       throw new NotImplementedException("oldRoot");
     }
@@ -81,6 +118,12 @@ public class ShadowingCoordinator {
     log.info("Old milestone indices (min, max): [{}, {}]", oldMilestones.get(0).milestoneIdx, oldMilestones.get(oldMilestones.size() - 1).milestoneIdx);
   }
 
+  /**
+   * Broadcasts a list of transactions to an IRI node
+   *
+   * @param transactions
+   * @throws ArgumentException
+   */
   private void broadcast(List<Transaction> transactions) throws ArgumentException {
     log.info("Collected {} transactions for broadcast.", transactions.size());
 
@@ -95,7 +138,7 @@ public class ShadowingCoordinator {
   }
 
 
-  public void start() throws Exception {
+  private void start() throws Exception {
     String trunk = config.initialTrunk;
     String branch;
 
@@ -109,12 +152,16 @@ public class ShadowingCoordinator {
 
       List<Transaction> txs = db.createMilestone(trunk, branch, newMilestoneIdx, config.MWM);
       transactions.addAll(txs);
-      log.info("Created milestone {}({}) referencing {} and {}", newMilestoneIdx, Hasher.hashTrytes(db.getMode(),
+      log.info("Created milestone {}({}) referencing {} and {}", newMilestoneIdx, Hasher.hashTrytes(db.getPoWMode(),
           txs.get(0).toTrytes()), trunk, branch);
 
+      /*
+       * If the current list of transactions exceeds the broadcast threshold,
+       * broadcast all available transactions.
+       * Before continuing the milestone generation, ensures that node has become solid on the new milestones.
+       */
       if (transactions.size() >= config.broadcastBatch) {
         broadcast(transactions);
-
 
         GetNodeInfoResponse nodeInfo;
         int count = 0;
@@ -130,8 +177,9 @@ public class ShadowingCoordinator {
           try {
             GetTransactionsToApproveResponse txToApprove = api.getTransactionsToApprove(3);
             log.info("{} Trunk: {} Branch: {}", count, txToApprove.getBranchTransaction(), txToApprove.getTrunkTransaction());
-            if (txToApprove.getBranchTransaction() == null || txToApprove.getTrunkTransaction() == null)
-              throw new RuntimeException("e");
+            if (txToApprove.getBranchTransaction() == null || txToApprove.getTrunkTransaction() == null) {
+              throw new RuntimeException("Broke transactions to approve. Repeating check.");
+            }
 
             break;
           } catch (Exception e) {
@@ -144,7 +192,7 @@ public class ShadowingCoordinator {
 
       newMilestoneIdx++;
 
-      trunk = Hasher.hashTrytes(db.getMode(), txs.get(0).toTrytes());
+      trunk = Hasher.hashTrytes(db.getPoWMode(), txs.get(0).toTrytes());
     }
 
     broadcast(transactions);

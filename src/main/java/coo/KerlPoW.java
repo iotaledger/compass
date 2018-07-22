@@ -1,3 +1,28 @@
+/*
+ * This file is part of TestnetCOO.
+ *
+ * Copyright (C) 2018 IOTA Stiftung
+ * TestnetCOO is Copyright (C) 2017-2018 IOTA Stiftung
+ *
+ * TestnetCOO is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * TestnetCOO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with TestnetCOO.  If not, see:
+ *      http://www.gnu.org/licenses/
+ *
+ * For more information contact:
+ *     IOTA Stiftung <contact@iota.org>
+ *     https://www.iota.org/
+ */
+
 package coo;
 
 import jota.IotaLocalPoW;
@@ -8,12 +33,11 @@ import jota.utils.Converter;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * @author Andreas C. Osowski
+ * A simple man's naive and single-threaded implementation of Kerl-based Proof-of-Work
  */
 public class KerlPoW implements IotaLocalPoW {
 
@@ -22,7 +46,6 @@ public class KerlPoW implements IotaLocalPoW {
   public final static int NONCE_START_TRYTE = NONCE_START_TRIT / 3;
   public final static int NONCE_LENGTH_TRYTE = NONCE_LENGTH_TRIT / 3;
 
-  private final Logger log = Logger.getLogger("KerlPoW");
   private KerlPoWSettings settings;
 
   public KerlPoW() {
@@ -36,6 +59,8 @@ public class KerlPoW implements IotaLocalPoW {
       settings.numberOfThreads = Math.max(1, Math.floorDiv(available * 8, 10));
     }
 
+    // TODO (th0br0): fix PoW offsetting so we can use multiple threads
+    settings.numberOfThreads = 1;
   }
 
   @Override

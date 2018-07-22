@@ -21,10 +21,10 @@ repositories {
 
 dependencies {
     // This dependency is found on compile classpath of this component and consumers.
-    compile fileTree(include: ["*.jar"], dir: "libs")
+    compile fileTree(include: ['*.jar'], dir: 'libs')
 
     compile 'com.google.guava:guava:23.5-jre'
-    compile "com.beust:jcommander:1.71"
+    compile 'com.beust:jcommander:1.71'
 
     compile 'org.slf4j:slf4j-simple:1.7.25'
     compile 'org.apache.commons:commons-lang3:3.7'
@@ -37,6 +37,40 @@ dependencies {
     testCompile 'junit:junit:4.12'
 }
 
-// Define the main class for the application
 mainClassName = 'coo.Coordinator'
+applicationName = 'coordinator'
+
+task merkleTreeCalculator(type: CreateStartScripts) {
+    mainClassName = 'coo.util.MerkleTreeCalculator'
+    applicationName = 'merkleTreeCalculator'
+    classpath = startScripts.classpath
+    outputDir = startScripts.outputDir
+}
+
+task addressGenerator(type: CreateStartScripts) {
+    mainClassName = 'coo.util.AddressGenerator'
+    applicationName = 'addressGenerator'
+    classpath = startScripts.classpath
+    outputDir = startScripts.outputDir
+}
+
+task shadowingCoordinator(type: CreateStartScripts) {
+    mainClassName = 'coo.shadow.ShadowingCoordinator'
+    applicationName = 'shadowingCoordinator'
+    classpath = startScripts.classpath
+    outputDir = startScripts.outputDir
+}
+
+applicationDistribution.into('bin') {
+    duplicatesStrategy= DuplicatesStrategy.EXCLUDE
+    from(merkleTreeCalculator)
+    from(addressGenerator)
+    from(shadowingCoordinator)
+    fileMode = 0755
+}
+
+distZip {
+    archiveName 'coordinator.zip'
+}
+
 

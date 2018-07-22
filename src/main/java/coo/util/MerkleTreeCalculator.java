@@ -1,5 +1,31 @@
+/*
+ * This file is part of TestnetCOO.
+ *
+ * Copyright (C) 2018 IOTA Stiftung
+ * TestnetCOO is Copyright (C) 2017-2018 IOTA Stiftung
+ *
+ * TestnetCOO is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * TestnetCOO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with TestnetCOO.  If not, see:
+ *      http://www.gnu.org/licenses/
+ *
+ * For more information contact:
+ *     IOTA Stiftung <contact@iota.org>
+ *     https://www.iota.org/
+ */
+
 package coo.util;
 
+import com.google.common.math.IntMath;
 import jota.pow.ICurl;
 import jota.pow.SpongeFactory;
 import jota.utils.Converter;
@@ -8,6 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,7 +48,6 @@ import java.util.stream.Stream;
 
 public class MerkleTreeCalculator {
   private final Logger log = LoggerFactory.getLogger(getClass());
-
   private final SpongeFactory.Mode MODE;
 
   public MerkleTreeCalculator(SpongeFactory.Mode mode) {
@@ -30,7 +56,7 @@ public class MerkleTreeCalculator {
 
   public static void main(String[] args) throws IOException {
     if (args.length != 3) {
-      throw new IllegalArgumentException("Usage: <mode> <addresses.csv> <out dir>");
+      throw new IllegalArgumentException("Usage: <sigMode> <addresses.csv> <out dir>");
     }
 
     Path layers = Paths.get(args[2]);
@@ -82,7 +108,7 @@ public class MerkleTreeCalculator {
   }
 
   public List<List<String>> calculateAllLayers(List<String> addresses) {
-    int depth = Math.log2(addresses.size());
+    int depth = IntMath.log2(addresses.size(), RoundingMode.FLOOR);
     List<List<String>> layers = new ArrayList<>(depth);
     List<String> last = addresses;
     layers.add(last);
@@ -94,23 +120,19 @@ public class MerkleTreeCalculator {
       layers.add(last);
     }
 
+
     Collections.reverse(layers);
     return layers;
   }
 
   public void process(String path, Path outputDir) throws IOException {
     List<String> leaves = loadAddresses(path);
+    List<List<String>> layers = calculateAllLayers(leaves);
 
-    int depth = Math.log2(leaves.size());
-    List<String> last = leaves;
-
-    while (depth-- > 0) {
-      log.info("Calculating nodes for depth " + depth);
-      last = calculateNextLayer(last);
-
-      writeLayer(outputDir, depth, last);
+    for(int i = 0; i < layers.size(); i++) {
+      writeLayer(outputDir, i, layers.get(i));
     }
 
-    log.info("Successfully wrote merkle tree with root: " + last.get(0));
+    log.info("Successfully wrote merkle tree with root: " + layers.get(0).get(0));
   }
 }

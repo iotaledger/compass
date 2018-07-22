@@ -23,33 +23,23 @@
  *     https://www.iota.org/
  */
 
-package coo;
+import java.util.Random;
 
-import com.google.common.base.Strings;
-import jota.model.Transaction;
-import jota.pow.SpongeFactory;
+public class TestUtil {
 
-import java.util.List;
+  public static final String ALPHABET = "9ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-public abstract class MilestoneSource {
-  public final static String EMPTY_HASH = Strings.repeat("9", 81);
-  public final static String EMPTY_TAG = Strings.repeat("9", 27);
-  public final static String EMPTY_MSG = Strings.repeat("9", 27 * 81);
+  public static String nextSeed() {
+    return nextTrytes(81);
+  }
 
-  /**
-   * @return the merkle tree root backed by this `MilestoneSource`
-   */
-  public abstract String getRoot();
+  public static String nextTrytes(int count) {
+    Random random = new Random();
+    char[] buf = new char[count];
 
-  /**
-   * @return the sponge mode used by this `MilestoneSource` for creating signatures
-   */
-  public abstract SpongeFactory.Mode getSignatureMode();
+    for (int idx = 0; idx < buf.length; ++idx)
+      buf[idx] = ALPHABET.charAt(random.nextInt(ALPHABET.length()));
 
-  /**
-   * @return the sponge mode used by this `MilestoneSource` for performing proof of work
-   */
-  public abstract SpongeFactory.Mode getPoWMode();
-
-  public abstract List<Transaction> createMilestone(String trunk, String branch, int index, int mwm);
+    return new String(buf);
+  }
 }
