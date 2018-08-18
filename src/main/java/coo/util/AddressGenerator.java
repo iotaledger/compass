@@ -47,26 +47,28 @@ public class AddressGenerator {
     public final SpongeFactory.Mode MODE;
     public final int COUNT;
     private final int[] SEEDt;
+    private final int SECURITY;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public AddressGenerator(SpongeFactory.Mode mode, String seed, int depth) {
+    public AddressGenerator(SpongeFactory.Mode mode, String seed, int security, int depth) {
         this.SEEDt = Converter.trits(seed);
         this.COUNT = 1 << depth;
         this.MODE = mode;
+        this.SECURITY = security;
     }
 
     public static void main(String[] args) throws IOException {
         if (args.length != 4) {
-            throw new IllegalArgumentException("Usage: <sigMode> <seed> <depth> <outfile>");
+            throw new IllegalArgumentException("Usage: <sigMode> <seed> <security> <depth> <outfile>");
         }
 
-        new AddressGenerator(SpongeFactory.Mode.valueOf(args[0]), args[1], Integer.parseInt(args[2])).work(args[3]);
+        new AddressGenerator(SpongeFactory.Mode.valueOf(args[0]), args[1], Integer.parseInt(args[2]), Integer.parseInt(args[3])).work(args[3]);
     }
 
     public String calculateAddress(int idx) {
         int[] subseed = new int[JCurl.HASH_LENGTH];
-        int[] key = new int[ISSInPlace.FRAGMENT_LENGTH];
+        int[] key = new int[ISSInPlace.FRAGMENT_LENGTH * SECURITY];
         int[] digests = new int[key.length / ISSInPlace.FRAGMENT_LENGTH * JCurl.HASH_LENGTH];
         int[] address = new int[JCurl.HASH_LENGTH];
 

@@ -38,75 +38,82 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import static jota.pow.SpongeFactory.Mode.*;
+import static jota.pow.SpongeFactory.Mode.CURLP27;
+import static jota.pow.SpongeFactory.Mode.CURLP81;
+import static jota.pow.SpongeFactory.Mode.KERL;
 
 /**
  * Tests milestone generation & verifies the signatures
  */
 public class MilestoneTest {
-  private void runForMode(SpongeFactory.Mode powMode, SpongeFactory.Mode sigMode) throws IOException {
+  private void runForMode(SpongeFactory.Mode powMode, SpongeFactory.Mode sigMode, int security) throws IOException {
     final String seed = TestUtil.nextSeed();
     final int depth = 4;
     final int MWM = 4;
 
-    final AddressGenerator gen = new AddressGenerator(sigMode, seed, depth);
+    final AddressGenerator gen = new AddressGenerator(sigMode, seed, security, depth);
     final List<String> addresses = gen.calculateAllAddresses();
 
     final MerkleTreeCalculator treeCalculator = new MerkleTreeCalculator(sigMode);
     final List<List<String>> layers = treeCalculator.calculateAllLayers(addresses);
-
-    final MilestoneDatabase db = new MilestoneDatabase(powMode, sigMode, layers, seed);
+    final MilestoneDatabase db = new MilestoneDatabase(powMode, sigMode, layers, seed, security);
 
     for (int i = 0; i < (1 << depth); i++) {
       final List<Transaction> txs = db.createMilestone(MilestoneSource.EMPTY_HASH, MilestoneSource.EMPTY_HASH, i, MWM);
 
-      final Transaction tx0 = txs.get(0);
-      final Transaction tx1 = txs.get(1);
+      final Transaction txFirst = txs.get(0);
+      final Transaction txSiblings = txs.get(txs.size() - 1);
 
-      Assert.assertEquals(db.getRoot(), tx0.getAddress());
-      int[] signatureTrits = Converter.trits(tx0.getSignatureFragments());
-      int[] trunkTrits = Converter.trits(Hasher.hashTrytes(powMode == KERL ? KERL : CURLP81, tx1.toTrytes()));
-      trunkTrits = ISS.normalizedBundle(trunkTrits);
+      Assert.assertEquals(db.getRoot(), txFirst.getAddress());
+      final int[] trunkTrits = ISS.normalizedBundle(Converter.trits(Hasher.hashTrytes(powMode, txSiblings.toTrytes())));
 
-      int[] signatureAddress = ISS.address(sigMode, ISS.digest(sigMode, Arrays.copyOf(trunkTrits, ISS.NUMBER_OF_FRAGMENT_CHUNKS), signatureTrits));
+      // Get digest of each individual signature.
+      int[] signatureTrits = Converter.trits(
+          txs.stream()
+              .limit(txs.size() - 1)
+              .map(t -> Converter.trytes(ISS.digest(sigMode,
+                  Arrays.copyOfRange(trunkTrits, (int) t.getCurrentIndex() * ISS.NUMBER_OF_FRAGMENT_CHUNKS,
+                      (int) (t.getCurrentIndex() + 1) * ISS.NUMBER_OF_FRAGMENT_CHUNKS),
+                  Converter.trits(t.getSignatureFragments()))))
+              .collect(Collectors.joining("")));
+
+      int[] signatureAddress = ISS.address(sigMode, signatureTrits);
       Assert.assertEquals(addresses.get(i), Converter.trytes(signatureAddress));
 
-      int[] siblingTrits = Converter.trits(tx1.getSignatureFragments());
+      int[] siblingTrits = Converter.trits(txSiblings.getSignatureFragments());
       int[] root = ISS.getMerkleRoot(sigMode, signatureAddress, siblingTrits, 0, i, depth);
       Assert.assertEquals(db.getRoot(), Converter.trytes(root));
     }
-
-
   }
 
   @Test
-  public void runCURLP81_CURLP27() throws IOException {
-    runForMode(CURLP81, CURLP27);
+  public void runTests() throws IOException {
+    int from = 1, to = 3;
+    SpongeFactory.Mode[] powModes = new SpongeFactory.Mode[]{
+        // Jota's LocalPoWProvider only supports CURLP81
+        // CURLP27,
+        CURLP81,
+        KERL
+    };
+
+    SpongeFactory.Mode[] sigModes = new SpongeFactory.Mode[]{
+        CURLP27,
+        CURLP81,
+        KERL
+    };
+
+    for (SpongeFactory.Mode powMode : powModes) {
+      for (SpongeFactory.Mode sigMode : sigModes) {
+        for (int security = from; security <= to; security++) {
+          System.err.println("Running: " + powMode + " : " + sigMode + " : " + security);
+          runForMode(powMode, sigMode, security);
+        }
+      }
+    }
+
   }
 
-  @Test
-  public void runCURLP81_CURLP81() throws IOException {
-    runForMode(CURLP81, CURLP81);
-  }
 
-  @Test
-  public void runCURLP81_KERL() throws IOException {
-    runForMode(CURLP81, KERL);
-  }
-
-  @Test
-  public void runKERL_CURLP27() throws IOException {
-    runForMode(KERL, CURLP27);
-  }
-
-  @Test
-  public void runKERL_CURLP81() throws IOException {
-    runForMode(KERL, CURLP81);
-  }
-
-  @Test
-  public void runKERL_KERL() throws IOException {
-    runForMode(KERL, KERL);
-  }
 }

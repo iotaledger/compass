@@ -48,4 +48,7 @@ public class BaseConfiguration {
 
   @Parameter(names = "-powMode", description = "Sponge mode to use for Proof of Work (one of CURLP81, KERL)", required = true, validateWith = {POWModeValidator.class})
   public String powMode = "CURLP81";
+
+  @Parameter(names = "-security", description = "Security level to use. Value must be in [1;3]")
+  public Integer security = 1;
 }

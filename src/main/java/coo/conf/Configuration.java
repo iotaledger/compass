@@ -48,4 +48,7 @@ public class Configuration extends BaseConfiguration {
 
   @Parameter(names = "-index", description = "Starting milestone index (inclusive)")
   public Integer index;
+
+  @Parameter(names = "-security", description = "Security level to use. Value must be in [1;3]")
+  public Integer security = 1;
 }

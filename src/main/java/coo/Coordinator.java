@@ -61,7 +61,7 @@ public class Coordinator {
   public Coordinator(Configuration config) throws IOException {
     this.config = config;
     this.node = new URL(config.host);
-    this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.powMode), SpongeFactory.Mode.valueOf(config.sigMode), config.layersPath, config.seed);
+    this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.powMode), SpongeFactory.Mode.valueOf(config.sigMode), config.layersPath, config.seed, config.security);
 
     this.api = new IotaAPI.Builder().localPoW(new KerlPoW())
         .protocol(this.node.getProtocol())
