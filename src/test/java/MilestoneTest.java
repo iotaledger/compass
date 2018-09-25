@@ -23,8 +23,8 @@
  *     https://www.iota.org/
  */
 
+import com.google.common.base.Strings;
 import coo.MilestoneDatabase;
-import coo.MilestoneSource;
 import coo.crypto.Hasher;
 import coo.crypto.ISS;
 import coo.util.AddressGenerator;
@@ -35,20 +35,17 @@ import jota.utils.Converter;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static jota.pow.SpongeFactory.Mode.CURLP27;
-import static jota.pow.SpongeFactory.Mode.CURLP81;
-import static jota.pow.SpongeFactory.Mode.KERL;
+import static jota.pow.SpongeFactory.Mode.*;
 
 /**
  * Tests milestone generation & verifies the signatures
  */
 public class MilestoneTest {
-  private void runForMode(SpongeFactory.Mode powMode, SpongeFactory.Mode sigMode, int security) throws IOException {
+  private void runForMode(SpongeFactory.Mode powMode, SpongeFactory.Mode sigMode, int security) {
     final String seed = TestUtil.nextSeed();
     final int depth = 4;
     final int MWM = 4;
@@ -61,11 +58,12 @@ public class MilestoneTest {
     final MilestoneDatabase db = new MilestoneDatabase(powMode, sigMode, layers, seed, security);
 
     for (int i = 0; i < (1 << depth); i++) {
-      final List<Transaction> txs = db.createMilestone(MilestoneSource.EMPTY_HASH, MilestoneSource.EMPTY_HASH, i, MWM);
+      final List<Transaction> txs = db.createMilestone(TestUtil.nextSeed(), TestUtil.nextSeed(), i, MWM);
 
       final Transaction txFirst = txs.get(0);
       final Transaction txSiblings = txs.get(txs.size() - 1);
 
+      txs.forEach(tx -> Assert.assertTrue("Transaction PoW MWM not met", tx.getHash().endsWith(Strings.repeat("9", MWM / 3))));
       Assert.assertEquals(db.getRoot(), txFirst.getAddress());
       final int[] trunkTrits = ISS.normalizedBundle(Converter.trits(Hasher.hashTrytes(powMode, txSiblings.toTrytes())));
 
@@ -89,7 +87,7 @@ public class MilestoneTest {
   }
 
   @Test
-  public void runTests() throws IOException {
+  public void runTests() {
     int from = 1, to = 3;
     SpongeFactory.Mode[] powModes = new SpongeFactory.Mode[]{
         // Jota's LocalPoWProvider only supports CURLP81
@@ -99,9 +97,9 @@ public class MilestoneTest {
     };
 
     SpongeFactory.Mode[] sigModes = new SpongeFactory.Mode[]{
+        KERL,
         CURLP27,
-        CURLP81,
-        KERL
+        CURLP81
     };
 
     for (SpongeFactory.Mode powMode : powModes) {

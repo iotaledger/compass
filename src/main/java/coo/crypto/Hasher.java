@@ -42,12 +42,16 @@ public class Hasher {
    * @return 81 tryte hash
    */
   public static String hashTrytes(SpongeFactory.Mode mode, String trytes) {
+    return Converter.trytes(hashTrytesToTrits(mode, trytes));
+  }
+
+  public static int[] hashTrytesToTrits(SpongeFactory.Mode mode, String trytes) {
     int[] hash = new int[JCurl.HASH_LENGTH];
 
     ICurl sponge = SpongeFactory.create(mode);
     sponge.absorb(Converter.trits(trytes));
     sponge.squeeze(hash);
 
-    return Converter.trytes(hash);
+    return hash;
   }
 }

@@ -25,10 +25,8 @@
 
 package coo;
 
-import cfb.pearldiver.PearlDiverLocalPoW;
 import com.beust.jcommander.JCommander;
 import coo.conf.Configuration;
-import coo.crypto.Hasher;
 import jota.IotaAPI;
 import jota.dto.response.GetNodeInfoResponse;
 import jota.dto.response.GetTransactionsToApproveResponse;
@@ -213,7 +211,7 @@ public class Coordinator {
       log.info("Trunk: " + trunk + " Branch: " + branch);
       List<Transaction> txs = db.createMilestone(trunk, branch, latestMilestone, config.MWM);
 
-      latestMilestoneHash = Hasher.hashTrytes(db.getPoWMode(), txs.get(0).toTrytes());
+      latestMilestoneHash = txs.get(0).getHash();
 
       if (config.broadcast) {
         for (Transaction tx : txs) {

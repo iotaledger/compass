@@ -59,6 +59,10 @@ public class MilestoneDatabase extends MilestoneSource {
   private final List<List<String>> layers;
   private final int SECURITY;
 
+  private final int NONCE_OFFSET = 2673 /* tx length in trytes */ - 27 /* nonce length in trytes */;
+  private final int SIGNATURE_LENGTH = 27 * 81;
+
+
   public MilestoneDatabase(SpongeFactory.Mode powMode, SpongeFactory.Mode sigMode, String path, String seed, int security) throws IOException {
     this(powMode, sigMode, loadLayers(path), seed, security);
   }
@@ -104,7 +108,7 @@ public class MilestoneDatabase extends MilestoneSource {
       List<String> layer = layers.get(curLayer);
       if ((leafIdx & 1) == 1) {
         // odd
-        siblings.add(layer.get(--leafIdx));
+        siblings.add(layer.get(leafIdx - 1));
       } else {
         siblings.add(layer.get(leafIdx + 1));
       }
@@ -151,8 +155,6 @@ public class MilestoneDatabase extends MilestoneSource {
 
   @Override
   public List<Transaction> createMilestone(String trunk, String branch, int index, int mwm) {
-    final int NONCE_OFFSET = 2673 /* tx length in trytes */ - 27 /* nonce length in trytes */;
-    final int SIGNATURE_LENGTH = 27 * 81;
 
     IotaLocalPoW pow = getPoWProvider();
 
@@ -194,7 +196,7 @@ public class MilestoneDatabase extends MilestoneSource {
           tx.setTrunkTransaction(EMPTY_HASH);
           tx.setBranchTransaction(trunk);
           tx.setTag(tag);
-          tx.setNonce(Strings.repeat("9", 27));
+          tx.setNonce(EMPTY_TAG);
           return tx;
         }).collect(Collectors.toList());
 
@@ -202,7 +204,12 @@ public class MilestoneDatabase extends MilestoneSource {
 
     String hashToSign;
 
-    // We support separate signature methods
+
+    //calculate the bundle hash (same for Curl & Kerl)
+    String bundleHash = calculateBundleHash(txs);
+    txs.forEach(tx -> tx.setBundle(bundleHash));
+
+    txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
     if (SIGMODE == SpongeFactory.Mode.KERL) {
       /*
       In the case that the signature is created using KERL, we need to ensure that there exists no 'M'(=13) in the
@@ -210,64 +217,53 @@ public class MilestoneDatabase extends MilestoneSource {
        */
       boolean hashContainsM;
       int attempts = 0;
-      ICurl sponge = SpongeFactory.create(POWMODE);
-      int[] hashTrits = new int[JCurl.HASH_LENGTH];
-
       do {
-        String bundleHash = generateBundleHash(txs);
-        txs.forEach(tx -> tx.setBundle(bundleHash));
-
-        attempts++;
-
-        txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
-
-        sponge.reset();
-        sponge.absorb(Converter.trits(txSiblings.toTrytes()));
-        sponge.squeeze(hashTrits);
-
+        int[] hashTrits = Hasher.hashTrytesToTrits(POWMODE, txSiblings.toTrytes());
         int[] normHash = ISS.normalizedBundle(hashTrits);
 
-        hashContainsM = false;
-        for (int i = 0; i < ISS.NUMBER_OF_FRAGMENT_CHUNKS; i++) {
-          if (normHash[i] == 13) {
-            hashContainsM = true;
-
-            int[] tagTrits = Converter.trits(txSiblings.getObsoleteTag());
-            Converter.increment(tagTrits, tagTrits.length);
-            txSiblings.setObsoleteTag(Converter.trytes(tagTrits));
-            break;
-          }
+        hashContainsM = Arrays.stream(normHash).limit(ISS.NUMBER_OF_FRAGMENT_CHUNKS * SECURITY).anyMatch(elem -> elem == 13);
+        if (hashContainsM) {
+          int[] attachmentTimestamp = Converter.trits(txSiblings.getAttachmentTimestamp(), 27);
+          Converter.increment(attachmentTimestamp, attachmentTimestamp.length);
+          txSiblings.setAttachmentTimestamp(Converter.longValue(attachmentTimestamp));
+          txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
         }
+        attempts++;
       } while (hashContainsM);
-      log.debug("KERL milestone generation took {} attempts: ", attempts);
 
-      hashToSign = Converter.trytes(hashTrits);
-    } else {
-      String bundleHash = generateBundleHash(txs);
-      txs.forEach(tx -> tx.setBundle(bundleHash));
+      log.info("KERL milestone generation took {} attempts.", attempts);
 
-      txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
-      hashToSign = Hasher.hashTrytes(POWMODE, txSiblings.toTrytes());
     }
 
+    hashToSign = Hasher.hashTrytes(POWMODE, txSiblings.toTrytes());
     String signature = createSignature(SIGMODE, index, hashToSign);
+    txSiblings.setHash(hashToSign);
 
+    chainTransactionsFillSignatures(mwm, txs, signature);
+
+    return txs;
+  }
+
+  private void chainTransactionsFillSignatures(int mwm, List<Transaction> txs, String signature) {
+    //to chain transactions we start from the LastIndex and move towards index 0.
     Collections.reverse(txs);
 
     txs.stream().skip(1).forEach(tx -> {
-      // Get hash of previous tx.
-      String prevHash = Hasher.hashTrytes(POWMODE, txs.get(((int) (tx.getCurrentIndex() + 1))).toTrytes());
+        //copy signature fragment
+        String sigSub = signature.substring((int) (tx.getCurrentIndex() * SIGNATURE_LENGTH),
+                (int) (Math.min(tx.getCurrentIndex() + 1, SECURITY) * SIGNATURE_LENGTH));
+        tx.setSignatureFragments(sigSub);
 
-      String sigSub = signature.substring((int) (tx.getCurrentIndex() * SIGNATURE_LENGTH),
-              (int) (Math.min(tx.getCurrentIndex() + 1, SECURITY) * SIGNATURE_LENGTH));
-      tx.setSignatureFragments(sigSub);
-      tx.setTrunkTransaction(prevHash);
+        //chain bundle
+        String prevHash = txs.get((int) (tx.getLastIndex() - tx.getCurrentIndex() - 1)).getHash();
+        tx.setTrunkTransaction(prevHash);
+
+        //perform PoW
+        tx.setNonce(getPoWProvider().performPoW(tx.toTrytes(), mwm).substring(NONCE_OFFSET));
+        tx.setHash(Hasher.hashTrytes(POWMODE, tx.toTrytes()));
     });
 
-
     Collections.reverse(txs);
-
-    return txs;
   }
 
   /**
@@ -295,7 +291,7 @@ public class MilestoneDatabase extends MilestoneSource {
     return fragment.toString();
   }
 
-  private String generateBundleHash(List<Transaction> txs) {
+  private String calculateBundleHash(List<Transaction> txs) {
     final int OFFSET = (ISS.FRAGMENT_LENGTH / 3);
     final int LENGTH = (243 + 81 + 81 + 27 + 27 + 27) / 3;
 
