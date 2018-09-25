@@ -28,7 +28,6 @@ package coo.crypto;
 import jota.pow.ICurl;
 import jota.pow.JCurl;
 import jota.pow.SpongeFactory;
-import jota.utils.Converter;
 
 import java.util.Arrays;
 

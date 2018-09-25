@@ -29,6 +29,8 @@ import jota.IotaLocalPoW;
 import jota.pow.ICurl;
 import jota.pow.SpongeFactory;
 import jota.utils.Converter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.*;
@@ -40,6 +42,7 @@ import java.util.stream.IntStream;
  * A simple man's naive and single-threaded implementation of Kerl-based Proof-of-Work
  */
 public class KerlPoW implements IotaLocalPoW {
+  private static final Logger log = LoggerFactory.getLogger("KerlPoW");
 
   public final static int NONCE_START_TRIT = 7938;
   public final static int NONCE_LENGTH_TRIT = 81;
@@ -71,7 +74,7 @@ public class KerlPoW implements IotaLocalPoW {
         .mapToObj((idx) -> new Searcher(trytes, resultFound, minWeightMagnitude))
         .collect(Collectors.toList());
     final List<Future<String>> searcherFutures = searchers.stream()
-        .map((s) -> executorService.submit(s))
+        .map(executorService::submit)
         .collect(Collectors.toList());
 
     executorService.shutdown();
@@ -84,7 +87,7 @@ public class KerlPoW implements IotaLocalPoW {
         }
       }
     } catch (ExecutionException | InterruptedException e) {
-      e.printStackTrace();
+      log.error("failed to calculate PoW with MWM: {} , trytes: {}", trytes, minWeightMagnitude, e);
       return null;
     }
 
@@ -137,7 +140,7 @@ public class KerlPoW implements IotaLocalPoW {
     }
 
     @Override
-    public String call() throws Exception {
+    public String call() {
       String result = null;
       while (!shouldAbort()) {
         search();

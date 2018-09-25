@@ -27,6 +27,7 @@ package coo.shadow;
 
 import cfb.pearldiver.PearlDiverLocalPoW;
 import com.beust.jcommander.JCommander;
+import coo.KerlPoW;
 import coo.MilestoneDatabase;
 import coo.MilestoneSource;
 import coo.conf.ShadowingConfiguration;
@@ -68,10 +69,12 @@ public class ShadowingCoordinator {
 
   public ShadowingCoordinator(ShadowingConfiguration config) throws IOException {
     this.config = config;
-    this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.powMode),
+    SpongeFactory.Mode powMode = SpongeFactory.Mode.valueOf(config.powMode);
+    this.db = new MilestoneDatabase(powMode,
         SpongeFactory.Mode.valueOf(config.sigMode), config.layersPath, config.seed, config.security);
     this.node = new URL(config.host);
-    this.api = new IotaAPI.Builder().localPoW(new PearlDiverLocalPoW())
+    this.api = new IotaAPI.Builder()
+        .localPoW(powMode == SpongeFactory.Mode.KERL ? new KerlPoW() : new PearlDiverLocalPoW())
         .protocol(this.node.getProtocol())
         .host(this.node.getHost())
         .port(Integer.toString(this.node.getPort()))
@@ -176,7 +179,7 @@ public class ShadowingCoordinator {
           }
 
           try {
-            GetTransactionsToApproveResponse txToApprove = api.getTransactionsToApprove(3);
+            GetTransactionsToApproveResponse txToApprove = api.getTransactionsToApprove(config.depth);
             log.info("{} Trunk: {} Branch: {}", count, txToApprove.getBranchTransaction(), txToApprove.getTrunkTransaction());
             if (txToApprove.getBranchTransaction() == null || txToApprove.getTrunkTransaction() == null) {
               throw new RuntimeException("Broke transactions to approve. Repeating check.");
@@ -185,7 +188,6 @@ public class ShadowingCoordinator {
             break;
           } catch (Exception e) {
             log.error("Failed TX TO Approve at milestone: {}, {}", newMilestoneIdx, e.getMessage());
-            continue;
           }
         }
       }

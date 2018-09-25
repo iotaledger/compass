@@ -25,6 +25,7 @@
 
 package coo;
 
+import cfb.pearldiver.PearlDiverLocalPoW;
 import com.beust.jcommander.JCommander;
 import coo.conf.Configuration;
 import coo.crypto.Hasher;
@@ -39,7 +40,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 
 public class Coordinator {
@@ -49,7 +49,6 @@ public class Coordinator {
   private final Configuration config;
 
   private final Logger log = LoggerFactory.getLogger("COO");
-  private List<String> confirmedTips = new ArrayList<>();
 
   private int latestMilestone;
   private String latestMilestoneHash;
@@ -61,9 +60,11 @@ public class Coordinator {
   public Coordinator(Configuration config) throws IOException {
     this.config = config;
     this.node = new URL(config.host);
-    this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.powMode), SpongeFactory.Mode.valueOf(config.sigMode), config.layersPath, config.seed, config.security);
 
-    this.api = new IotaAPI.Builder().localPoW(new KerlPoW())
+    SpongeFactory.Mode powMode = SpongeFactory.Mode.valueOf(config.powMode);
+    this.db = new MilestoneDatabase(powMode, SpongeFactory.Mode.valueOf(config.sigMode), config.layersPath, config.seed, config.security);
+    this.api = new IotaAPI.Builder()
+        .localPoW(powMode == SpongeFactory.Mode.KERL ? new KerlPoW() : new PearlDiverLocalPoW())
         .protocol(this.node.getProtocol())
         .host(this.node.getHost())
         .port(Integer.toString(this.node.getPort()))

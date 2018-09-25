@@ -49,4 +49,7 @@ public class ShadowingConfiguration extends BaseConfiguration {
 
   @Parameter(names = "-initialTrunk", description = "Initial trunk that is referenced")
   public String initialTrunk = MilestoneSource.EMPTY_HASH;
+
+  @Parameter(names = "-depth", description = "depth from which to start the random walk")
+  public Integer depth = 3;
 }

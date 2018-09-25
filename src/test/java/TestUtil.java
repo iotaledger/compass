@@ -23,6 +23,7 @@
  *     https://www.iota.org/
  */
 
+import java.security.SecureRandom;
 import java.util.Random;
 
 public class TestUtil {
@@ -34,7 +35,7 @@ public class TestUtil {
   }
 
   public static String nextTrytes(int count) {
-    Random random = new Random();
+    Random random = new SecureRandom();
     char[] buf = new char[count];
 
     for (int idx = 0; idx < buf.length; ++idx)

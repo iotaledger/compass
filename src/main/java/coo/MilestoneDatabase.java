@@ -50,7 +50,7 @@ import java.util.stream.StreamSupport;
 
 public class MilestoneDatabase extends MilestoneSource {
 
-  private final Logger log = LoggerFactory.getLogger("MilestoneDatabase");
+  private static final Logger log = LoggerFactory.getLogger("MilestoneDatabase");
 
   private final SpongeFactory.Mode SIGMODE;
   private final SpongeFactory.Mode POWMODE;
@@ -63,7 +63,7 @@ public class MilestoneDatabase extends MilestoneSource {
     this(powMode, sigMode, loadLayers(path), seed, security);
   }
 
-  public MilestoneDatabase(SpongeFactory.Mode powMode, SpongeFactory.Mode sigMode, List<List<String>> layers, String seed, int security) throws IOException {
+  public MilestoneDatabase(SpongeFactory.Mode powMode, SpongeFactory.Mode sigMode, List<List<String>> layers, String seed, int security) {
     ROOT = layers.get(0).get(0);
     this.layers = layers;
     SEED = seed;
@@ -81,36 +81,11 @@ public class MilestoneDatabase extends MilestoneSource {
           try {
             result.put(idx, Files.readAllLines(p));
           } catch (IOException e) {
-            e.printStackTrace();
+            log.error("failed to load layers from: {}", path, e);
           }
         });
 
-    return result.entrySet().stream().map((e) -> e.getValue()).collect(Collectors.toList());
-  }
-
-  /**
-   * Computes a bundle hash given two transactions in Tryte format
-   *
-   * @param tx0
-   * @param tx1
-   * @return
-   */
-  private static String generateBundleHash(String tx0, String tx1) {
-    final int OFFSET = (ISS.FRAGMENT_LENGTH / ISS.TRYTE_WIDTH);
-
-    /* address + timestamp + value + tag + currentIndex + lastIndex */
-    final int LENGTH = (243 + 81 + 81 + 27 + 27 + 27) / ISS.TRYTE_WIDTH;
-
-    int[] t0 = Converter.trits(tx0.substring(OFFSET, OFFSET + LENGTH));
-    int[] t1 = Converter.trits(tx1.substring(OFFSET, OFFSET + LENGTH));
-
-    // TODO(th0br0): make bundle sponge mode a paramter
-    ICurl sponge = SpongeFactory.create(SpongeFactory.Mode.KERL);
-    sponge.absorb(t0);
-    sponge.absorb(t1);
-    sponge.squeeze(t0, 0, JCurl.HASH_LENGTH);
-
-    return Converter.trytes(t0, 0, JCurl.HASH_LENGTH);
+    return result.entrySet().stream().map(Map.Entry::getValue).collect(Collectors.toList());
   }
 
   /**
@@ -121,7 +96,7 @@ public class MilestoneDatabase extends MilestoneSource {
    * @return
    */
   private static List<String> siblings(int leafIdx, List<List<String>> layers) {
-    List<String> siblings = new ArrayList<>();
+    List<String> siblings = new ArrayList<>(layers.size());
 
     int curLayer = layers.size() - 1;
 
@@ -183,7 +158,7 @@ public class MilestoneDatabase extends MilestoneSource {
 
     // Get the siblings in the current merkle tree
     List<String> leafSiblings = siblings(index, layers);
-    String siblingsTrytes = leafSiblings.stream().collect(Collectors.joining(""));
+    String siblingsTrytes = String.join("", leafSiblings);
     siblingsTrytes = Strings.padEnd(siblingsTrytes, ISS.FRAGMENT_LENGTH / ISS.TRYTE_WIDTH, '9');
 
     final String tag = getTagForIndex(index);
@@ -225,7 +200,7 @@ public class MilestoneDatabase extends MilestoneSource {
 
     txs.add(txSiblings);
 
-    String signedHash;
+    String hashToSign;
 
     // We support separate signature methods
     if (SIGMODE == SpongeFactory.Mode.KERL) {
@@ -264,18 +239,18 @@ public class MilestoneDatabase extends MilestoneSource {
           }
         }
       } while (hashContainsM);
-      log.info("KERL milestone generation took attempts: " + attempts);
+      log.debug("KERL milestone generation took {} attempts: ", attempts);
 
-      signedHash = Converter.trytes(hashTrits);
+      hashToSign = Converter.trytes(hashTrits);
     } else {
-      String bundleHash = generateBundleHash(txs);
-      txs.forEach(tx -> tx.setBundle(bundleHash));
+      String bundlehHash = generateBundleHash(txs);
+      txs.forEach(tx -> tx.setBundle(bundlehHash));
 
       txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
-      signedHash = Hasher.hashTrytes(POWMODE, txSiblings.toTrytes());
+      hashToSign = Hasher.hashTrytes(POWMODE, txSiblings.toTrytes());
     }
 
-    String signature = createSignature(SIGMODE, index, signedHash);
+    String signature = createSignature(SIGMODE, index, hashToSign);
 
     Collections.reverse(txs);
 
@@ -283,11 +258,8 @@ public class MilestoneDatabase extends MilestoneSource {
       // Get hash of previous tx.
       String prevHash = Hasher.hashTrytes(POWMODE, txs.get(((int) (tx.getCurrentIndex() + 1))).toTrytes());
 
-      String sigSub = signature.substring((int) (tx.getCurrentIndex() * SIGNATURE_LENGTH));
-      if (sigSub.length() > SIGNATURE_LENGTH) {
-        sigSub = sigSub.substring(0, SIGNATURE_LENGTH);
-      }
-
+      String sigSub = signature.substring((int) (tx.getCurrentIndex() * SIGNATURE_LENGTH),
+              (int) (Math.min(tx.getCurrentIndex() + 1, SECURITY) * SIGNATURE_LENGTH));
       tx.setSignatureFragments(sigSub);
       tx.setTrunkTransaction(prevHash);
     });
@@ -311,16 +283,16 @@ public class MilestoneDatabase extends MilestoneSource {
     int[] subseed = ISS.subseed(mode, Converter.trits(SEED), index);
     int[] key = ISS.key(mode, subseed, SECURITY);
 
-    String fragment = "";
+    StringBuilder fragment = new StringBuilder();
 
     for (int i = 0; i < SECURITY; i++) {
       int[] curFrag = ISS.signatureFragment(mode,
           Arrays.copyOfRange(normalizedBundle, i * ISS.NUMBER_OF_FRAGMENT_CHUNKS, (i + 1) * ISS.NUMBER_OF_FRAGMENT_CHUNKS),
           Arrays.copyOfRange(key, i * ISS.FRAGMENT_LENGTH, (i + 1) * ISS.FRAGMENT_LENGTH));
-      fragment += Converter.trytes(curFrag);
+      fragment.append(Converter.trytes(curFrag));
     }
 
-    return fragment;
+    return fragment.toString();
   }
 
   private String generateBundleHash(List<Transaction> txs) {
