@@ -69,12 +69,11 @@ public class ShadowingCoordinator {
 
   public ShadowingCoordinator(ShadowingConfiguration config) throws IOException {
     this.config = config;
-    SpongeFactory.Mode powMode = SpongeFactory.Mode.valueOf(config.powMode);
-    this.db = new MilestoneDatabase(powMode,
+
+    this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.powMode),
         SpongeFactory.Mode.valueOf(config.sigMode), config.layersPath, config.seed, config.security);
     this.node = new URL(config.host);
     this.api = new IotaAPI.Builder()
-        .localPoW(powMode == SpongeFactory.Mode.KERL ? new KerlPoW() : new PearlDiverLocalPoW())
         .protocol(this.node.getProtocol())
         .host(this.node.getHost())
         .port(Integer.toString(this.node.getPort()))

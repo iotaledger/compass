@@ -243,8 +243,8 @@ public class MilestoneDatabase extends MilestoneSource {
 
       hashToSign = Converter.trytes(hashTrits);
     } else {
-      String bundlehHash = generateBundleHash(txs);
-      txs.forEach(tx -> tx.setBundle(bundlehHash));
+      String bundleHash = generateBundleHash(txs);
+      txs.forEach(tx -> tx.setBundle(bundleHash));
 
       txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
       hashToSign = Hasher.hashTrytes(POWMODE, txSiblings.toTrytes());

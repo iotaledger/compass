@@ -61,10 +61,9 @@ public class Coordinator {
     this.config = config;
     this.node = new URL(config.host);
 
-    SpongeFactory.Mode powMode = SpongeFactory.Mode.valueOf(config.powMode);
-    this.db = new MilestoneDatabase(powMode, SpongeFactory.Mode.valueOf(config.sigMode), config.layersPath, config.seed, config.security);
+    this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.powMode),
+            SpongeFactory.Mode.valueOf(config.sigMode), config.layersPath, config.seed, config.security);
     this.api = new IotaAPI.Builder()
-        .localPoW(powMode == SpongeFactory.Mode.KERL ? new KerlPoW() : new PearlDiverLocalPoW())
         .protocol(this.node.getProtocol())
         .host(this.node.getHost())
         .port(Integer.toString(this.node.getPort()))
