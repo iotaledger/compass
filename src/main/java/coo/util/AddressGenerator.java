@@ -59,11 +59,11 @@ public class AddressGenerator {
     }
 
     public static void main(String[] args) throws IOException {
-        if (args.length != 4) {
+        if (args.length != 5) {
             throw new IllegalArgumentException("Usage: <sigMode> <seed> <security> <depth> <outfile>");
         }
 
-        new AddressGenerator(SpongeFactory.Mode.valueOf(args[0]), args[1], Integer.parseInt(args[2]), Integer.parseInt(args[3])).work(args[3]);
+        new AddressGenerator(SpongeFactory.Mode.valueOf(args[0]), args[1], Integer.parseInt(args[2]), Integer.parseInt(args[3])).work(args[4]);
     }
 
     public String calculateAddress(int idx) {

@@ -25,9 +25,7 @@
 
 package coo.shadow;
 
-import cfb.pearldiver.PearlDiverLocalPoW;
 import com.beust.jcommander.JCommander;
-import coo.KerlPoW;
 import coo.MilestoneDatabase;
 import coo.MilestoneSource;
 import coo.conf.ShadowingConfiguration;
