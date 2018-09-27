@@ -223,9 +223,7 @@ public class MilestoneDatabase extends MilestoneSource {
 
         hashContainsM = Arrays.stream(normHash).limit(ISS.NUMBER_OF_FRAGMENT_CHUNKS * SECURITY).anyMatch(elem -> elem == 13);
         if (hashContainsM) {
-          int[] attachmentTimestamp = Converter.trits(txSiblings.getAttachmentTimestamp(), 27);
-          Converter.increment(attachmentTimestamp, attachmentTimestamp.length);
-          txSiblings.setAttachmentTimestamp(Converter.longValue(attachmentTimestamp));
+          txSiblings.setAttachmentTimestamp(System.currentTimeMillis());
           txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
         }
         attempts++;
