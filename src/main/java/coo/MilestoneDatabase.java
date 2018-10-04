@@ -90,7 +90,10 @@ public class MilestoneDatabase extends MilestoneSource {
           }
         });
 
-    return result.entrySet().stream().map(Map.Entry::getValue).collect(Collectors.toList());
+    return IntStream.range(0, result.size())
+            .mapToObj(result::get)
+            .peek(Objects::requireNonNull)
+            .collect(Collectors.toList());
   }
 
   /**
@@ -114,7 +117,7 @@ public class MilestoneDatabase extends MilestoneSource {
         siblings.add(layer.get(leafIdx + 1));
       }
 
-      leafIdx >>= 1;
+      leafIdx /= 2;
       curLayer--;
     }
 
@@ -249,9 +252,9 @@ public class MilestoneDatabase extends MilestoneSource {
 
     txs.stream().skip(1).forEach(tx -> {
         //copy signature fragment
-        String sigSub = signature.substring((int) (tx.getCurrentIndex() * SIGNATURE_LENGTH),
-                (int) (Math.min(tx.getCurrentIndex() + 1, SECURITY) * SIGNATURE_LENGTH));
-        tx.setSignatureFragments(sigSub);
+        String sigFragment = signature.substring((int) (tx.getCurrentIndex() * SIGNATURE_LENGTH),
+                (int) (tx.getCurrentIndex() + 1) * SIGNATURE_LENGTH);
+        tx.setSignatureFragments(sigFragment);
 
         //chain bundle
         String prevHash = txs.get((int) (tx.getLastIndex() - tx.getCurrentIndex() - 1)).getHash();
