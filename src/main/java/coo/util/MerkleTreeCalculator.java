@@ -47,11 +47,11 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class MerkleTreeCalculator {
-  private final Logger log = LoggerFactory.getLogger(getClass());
-  private final SpongeFactory.Mode MODE;
+  private static final Logger log = LoggerFactory.getLogger(MerkleTreeCalculator.class);
+  private final SpongeFactory.Mode mode;
 
   public MerkleTreeCalculator(SpongeFactory.Mode mode) {
-    this.MODE = mode;
+    this.mode = mode;
   }
 
   public static void main(String[] args) throws IOException {
@@ -82,7 +82,7 @@ public class MerkleTreeCalculator {
     final List<String> layer = Collections.unmodifiableList(inLayer);
 
     return IntStream.range(0, layer.size() / 2).mapToObj((int idx) -> {
-      ICurl sp = SpongeFactory.create(MODE);
+      ICurl sp = SpongeFactory.create(mode);
 
       int[] t1 = Converter.trits(layer.get(idx * 2));
       int[] t2 = Converter.trits(layer.get(idx * 2 + 1));

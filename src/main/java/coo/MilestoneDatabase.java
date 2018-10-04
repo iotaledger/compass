@@ -50,17 +50,18 @@ import java.util.stream.StreamSupport;
 
 public class MilestoneDatabase extends MilestoneSource {
 
-  private static final Logger log = LoggerFactory.getLogger("MilestoneDatabase");
+  private static final Logger log = LoggerFactory.getLogger(MilestoneDatabase.class);
+  private static final int NONCE_OFFSET = 2673 /* tx length in trytes */ - 27 /* nonce length in trytes */;
+  private static final int SIGNATURE_LENGTH = 27 * 81;
+  private static final int OFFSET = (ISS.FRAGMENT_LENGTH / 3);
+  private static final int LENGTH = (243 + 81 + 81 + 27 + 27 + 27) / 3;
 
-  private final SpongeFactory.Mode SIGMODE;
-  private final SpongeFactory.Mode POWMODE;
-  private final String SEED;
-  private final String ROOT;
+  private final SpongeFactory.Mode sigMode;
+  private final SpongeFactory.Mode powMode;
+  private final String seed;
+  private final String root;
   private final List<List<String>> layers;
-  private final int SECURITY;
-
-  private final int NONCE_OFFSET = 2673 /* tx length in trytes */ - 27 /* nonce length in trytes */;
-  private final int SIGNATURE_LENGTH = 27 * 81;
+  private final int security;
 
 
   public MilestoneDatabase(SpongeFactory.Mode powMode, SpongeFactory.Mode sigMode, String path, String seed, int security) throws IOException {
@@ -68,12 +69,12 @@ public class MilestoneDatabase extends MilestoneSource {
   }
 
   public MilestoneDatabase(SpongeFactory.Mode powMode, SpongeFactory.Mode sigMode, List<List<String>> layers, String seed, int security) {
-    ROOT = layers.get(0).get(0);
+    root = layers.get(0).get(0);
     this.layers = layers;
-    SEED = seed;
-    SECURITY = security;
-    SIGMODE = sigMode;
-    POWMODE = powMode;
+    this.seed = seed;
+    this.security = security;
+    this.sigMode = sigMode;
+    this.powMode = powMode;
   }
 
   private static List<List<String>> loadLayers(String path) throws IOException {
@@ -122,21 +123,21 @@ public class MilestoneDatabase extends MilestoneSource {
 
   @Override
   public SpongeFactory.Mode getSignatureMode() {
-    return SIGMODE;
+    return sigMode;
   }
 
   @Override
   public SpongeFactory.Mode getPoWMode() {
-    return POWMODE;
+    return powMode;
   }
 
   @Override
   public String getRoot() {
-    return ROOT;
+    return root;
   }
 
   private IotaLocalPoW getPoWProvider() {
-    if (POWMODE == SpongeFactory.Mode.KERL) {
+    if (powMode == SpongeFactory.Mode.KERL) {
       return new KerlPoW();
     } else {
       return new PearlDiverLocalPoW();
@@ -170,8 +171,8 @@ public class MilestoneDatabase extends MilestoneSource {
     Transaction txSiblings = new Transaction();
     txSiblings.setSignatureFragments(siblingsTrytes);
     txSiblings.setAddress(EMPTY_HASH);
-    txSiblings.setCurrentIndex(SECURITY);
-    txSiblings.setLastIndex(SECURITY);
+    txSiblings.setCurrentIndex(security);
+    txSiblings.setLastIndex(security);
     txSiblings.setTimestamp(System.currentTimeMillis() / 1000);
     txSiblings.setObsoleteTag(EMPTY_TAG);
     txSiblings.setValue(0);
@@ -183,12 +184,12 @@ public class MilestoneDatabase extends MilestoneSource {
 
     // The other transactions contain a signature that signs the siblings and thereby ensures the integrity.
     List<Transaction> txs =
-        IntStream.range(0, SECURITY).mapToObj(i -> {
+        IntStream.range(0, security).mapToObj(i -> {
           Transaction tx = new Transaction();
           tx.setSignatureFragments(Strings.repeat("9", 27 * 81));
-          tx.setAddress(ROOT);
+          tx.setAddress(root);
           tx.setCurrentIndex(i);
-          tx.setLastIndex(SECURITY);
+          tx.setLastIndex(security);
           tx.setTimestamp(System.currentTimeMillis() / 1000);
           tx.setObsoleteTag(tag);
           tx.setValue(0);
@@ -210,7 +211,7 @@ public class MilestoneDatabase extends MilestoneSource {
     txs.forEach(tx -> tx.setBundle(bundleHash));
 
     txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
-    if (SIGMODE == SpongeFactory.Mode.KERL) {
+    if (sigMode == SpongeFactory.Mode.KERL) {
       /*
       In the case that the signature is created using KERL, we need to ensure that there exists no 'M'(=13) in the
       normalized fragment that we're signing.
@@ -218,10 +219,10 @@ public class MilestoneDatabase extends MilestoneSource {
       boolean hashContainsM;
       int attempts = 0;
       do {
-        int[] hashTrits = Hasher.hashTrytesToTrits(POWMODE, txSiblings.toTrytes());
+        int[] hashTrits = Hasher.hashTrytesToTrits(powMode, txSiblings.toTrytes());
         int[] normHash = ISS.normalizedBundle(hashTrits);
 
-        hashContainsM = Arrays.stream(normHash).limit(ISS.NUMBER_OF_FRAGMENT_CHUNKS * SECURITY).anyMatch(elem -> elem == 13);
+        hashContainsM = Arrays.stream(normHash).limit(ISS.NUMBER_OF_FRAGMENT_CHUNKS * security).anyMatch(elem -> elem == 13);
         if (hashContainsM) {
           txSiblings.setAttachmentTimestamp(System.currentTimeMillis());
           txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
@@ -233,8 +234,8 @@ public class MilestoneDatabase extends MilestoneSource {
 
     }
 
-    hashToSign = Hasher.hashTrytes(POWMODE, txSiblings.toTrytes());
-    String signature = createSignature(SIGMODE, index, hashToSign);
+    hashToSign = Hasher.hashTrytes(powMode, txSiblings.toTrytes());
+    String signature = createSignature(sigMode, index, hashToSign);
     txSiblings.setHash(hashToSign);
 
     chainTransactionsFillSignatures(mwm, txs, signature);
@@ -258,7 +259,7 @@ public class MilestoneDatabase extends MilestoneSource {
 
         //perform PoW
         tx.setNonce(getPoWProvider().performPoW(tx.toTrytes(), mwm).substring(NONCE_OFFSET));
-        tx.setHash(Hasher.hashTrytes(POWMODE, tx.toTrytes()));
+        tx.setHash(Hasher.hashTrytes(powMode, tx.toTrytes()));
     });
 
     Collections.reverse(txs);
@@ -274,12 +275,12 @@ public class MilestoneDatabase extends MilestoneSource {
     int[] hashTrits = Converter.trits(hashToSign);
     int[] normalizedBundle = ISS.normalizedBundle(hashTrits);
 
-    int[] subseed = ISS.subseed(mode, Converter.trits(SEED), index);
-    int[] key = ISS.key(mode, subseed, SECURITY);
+    int[] subseed = ISS.subseed(mode, Converter.trits(seed), index);
+    int[] key = ISS.key(mode, subseed, security);
 
     StringBuilder fragment = new StringBuilder();
 
-    for (int i = 0; i < SECURITY; i++) {
+    for (int i = 0; i < security; i++) {
       int[] curFrag = ISS.signatureFragment(mode,
           Arrays.copyOfRange(normalizedBundle, i * ISS.NUMBER_OF_FRAGMENT_CHUNKS, (i + 1) * ISS.NUMBER_OF_FRAGMENT_CHUNKS),
           Arrays.copyOfRange(key, i * ISS.FRAGMENT_LENGTH, (i + 1) * ISS.FRAGMENT_LENGTH));
@@ -290,8 +291,6 @@ public class MilestoneDatabase extends MilestoneSource {
   }
 
   private String calculateBundleHash(List<Transaction> txs) {
-    final int OFFSET = (ISS.FRAGMENT_LENGTH / 3);
-    final int LENGTH = (243 + 81 + 81 + 27 + 27 + 27) / 3;
 
     ICurl sponge = SpongeFactory.create(SpongeFactory.Mode.KERL);
 
@@ -299,7 +298,7 @@ public class MilestoneDatabase extends MilestoneSource {
       sponge.absorb(Converter.trits(tx.toTrytes().substring(OFFSET, OFFSET + LENGTH)));
     }
 
-    int[] bundleHashTrits = new int[243];
+    int[] bundleHashTrits = new int[JCurl.HASH_LENGTH];
     sponge.squeeze(bundleHashTrits, 0, JCurl.HASH_LENGTH);
 
     return Converter.trytes(bundleHashTrits, 0, JCurl.HASH_LENGTH);

@@ -46,14 +46,14 @@ public class Coordinator {
   private final IotaAPI api;
   private final Configuration config;
 
-  private final Logger log = LoggerFactory.getLogger("COO");
+  private static final Logger log = LoggerFactory.getLogger(Coordinator.class);
 
   private int latestMilestone;
   private String latestMilestoneHash;
   private long latestMilestoneTime;
 
-  private long MILESTONE_TICK;
-  private int DEPTH;
+  private long milestoneTick;
+  private int depth;
 
   public Coordinator(Configuration config) throws IOException {
     this.config = config;
@@ -93,7 +93,7 @@ public class Coordinator {
 
     log.info("Timestamp delta: " + ((now - lastTimestamp)));
 
-    if ((now - lastTimestamp) > ((int) (config.depthScale * Long.valueOf(MILESTONE_TICK).floatValue()))) {
+    if ((now - lastTimestamp) > ((int) (config.depthScale * Long.valueOf(milestoneTick).floatValue()))) {
       // decrease depth as we took too long.
       nextDepth = currentDepth * 2 / 3;
     } else {
@@ -156,18 +156,18 @@ public class Coordinator {
       throw new RuntimeException("Provided index is lower than latest seen milestone.");
     }
 
-    MILESTONE_TICK = config.tick;
-    if (MILESTONE_TICK <= 0) {
-      throw new IllegalArgumentException("MILESTONE_TICK must be > 0");
+    milestoneTick = config.tick;
+    if (milestoneTick <= 0) {
+      throw new IllegalArgumentException("tick must be > 0");
     }
-    log.info("Setting milestone tick rate (ms) to: " + MILESTONE_TICK);
+    log.info("Setting milestone tick rate (ms) to: " + milestoneTick);
 
 
-    DEPTH = config.depth;
-    if (DEPTH <= 0) {
-      throw new IllegalArgumentException("DEPTH must be > 0");
+    depth = config.depth;
+    if (depth <= 0) {
+      throw new IllegalArgumentException("depth must be > 0");
     }
-    log.info("Setting initial depth to: " + DEPTH);
+    log.info("Setting initial depth to: " + depth);
   }
 
   private void start() throws ArgumentException, InterruptedException {
@@ -200,7 +200,7 @@ public class Coordinator {
       } else {
         // As it's solid,
         // GetTransactionsToApprove will return tips referencing latest milestone.
-        GetTransactionsToApproveResponse txToApprove = api.getTransactionsToApprove(DEPTH, nodeInfoResponse.getLatestMilestone());
+        GetTransactionsToApproveResponse txToApprove = api.getTransactionsToApprove(depth, nodeInfoResponse.getLatestMilestone());
         trunk = txToApprove.getTrunkTransaction();
         branch = txToApprove.getBranchTransaction();
       }
@@ -223,17 +223,17 @@ public class Coordinator {
       log.info("Emitted milestone: " + latestMilestone);
 
       if (bootstrap >= 3) {
-        nextDepth = getNextDepth(DEPTH, latestMilestoneTime);
+        nextDepth = getNextDepth(depth, latestMilestoneTime);
       } else {
-        nextDepth = DEPTH;
+        nextDepth = depth;
       }
 
-      log.info("Depth: " + DEPTH + " -> " + nextDepth);
+      log.info("Depth: " + depth + " -> " + nextDepth);
 
-      DEPTH = nextDepth;
+      depth = nextDepth;
       latestMilestoneTime = System.currentTimeMillis();
 
-      Thread.sleep(MILESTONE_TICK);
+      Thread.sleep(milestoneTick);
     }
   }
 }

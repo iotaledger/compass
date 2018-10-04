@@ -44,18 +44,18 @@ import java.util.stream.IntStream;
  * Given a seed, calculates a list of addresses to be used for Milestone Merkle Tree generation
  */
 public class AddressGenerator {
-    public final SpongeFactory.Mode MODE;
-    public final int COUNT;
-    private final int[] SEEDt;
-    private final int SECURITY;
+    public final SpongeFactory.Mode mode;
+    private final int count;
+    private final int[] seedTrits;
+    private final int security;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     public AddressGenerator(SpongeFactory.Mode mode, String seed, int security, int depth) {
-        this.SEEDt = Converter.trits(seed);
-        this.COUNT = 1 << depth;
-        this.MODE = mode;
-        this.SECURITY = security;
+        this.seedTrits = Converter.trits(seed);
+        this.count = 1 << depth;
+        this.mode = mode;
+        this.security = security;
     }
 
     public static void main(String[] args) throws IOException {
@@ -68,22 +68,22 @@ public class AddressGenerator {
 
     public String calculateAddress(int idx) {
         int[] subseed = new int[JCurl.HASH_LENGTH];
-        int[] key = new int[ISSInPlace.FRAGMENT_LENGTH * SECURITY];
+        int[] key = new int[ISSInPlace.FRAGMENT_LENGTH * security];
         int[] digests = new int[key.length / ISSInPlace.FRAGMENT_LENGTH * JCurl.HASH_LENGTH];
         int[] address = new int[JCurl.HASH_LENGTH];
 
-        System.arraycopy(SEEDt, 0, subseed, 0, subseed.length);
-        ISSInPlace.subseed(MODE, subseed, idx);
-        ISSInPlace.key(MODE, subseed, key);
-        ISSInPlace.digests(MODE, key, digests);
-        ISSInPlace.address(MODE, digests, address);
+        System.arraycopy(seedTrits, 0, subseed, 0, subseed.length);
+        ISSInPlace.subseed(mode, subseed, idx);
+        ISSInPlace.key(mode, subseed, key);
+        ISSInPlace.digests(mode, key, digests);
+        ISSInPlace.address(mode, digests, address);
 
         return Converter.trytes(address);
     }
 
     public List<String> calculateAllAddresses() {
-        log.info("Calculating " + COUNT + " addresses.");
-        List<String> outList = IntStream.range(0, COUNT)
+        log.info("Calculating " + count + " addresses.");
+        List<String> outList = IntStream.range(0, count)
                 .mapToObj(this::calculateAddress)
                 .parallel()
                 .collect(Collectors.toList());
