@@ -92,7 +92,7 @@ public class MilestoneDatabase extends MilestoneSource {
 
     return IntStream.range(0, result.size())
             .mapToObj(result::get)
-            .peek(Objects::requireNonNull)
+            .peek(list -> Objects.requireNonNull(list, "Found a missing layer. please check: " + path))
             .collect(Collectors.toList());
   }
 

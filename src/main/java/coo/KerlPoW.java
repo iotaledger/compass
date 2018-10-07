@@ -94,8 +94,8 @@ public class KerlPoW implements IotaLocalPoW {
     return null;
   }
 
-  static class KerlPoWSettings {
-    int numberOfThreads = 1;
+  private static class KerlPoWSettings {
+    private int numberOfThreads = 1;
   }
 
   class Searcher implements Callable<String> {
