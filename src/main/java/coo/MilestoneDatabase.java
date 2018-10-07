@@ -1,174 +1,309 @@
+/*
+ * This file is part of TestnetCOO.
+ *
+ * Copyright (C) 2018 IOTA Stiftung
+ * TestnetCOO is Copyright (C) 2017-2018 IOTA Stiftung
+ *
+ * TestnetCOO is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * TestnetCOO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with TestnetCOO.  If not, see:
+ *      http://www.gnu.org/licenses/
+ *
+ * For more information contact:
+ *     IOTA Stiftung <contact@iota.org>
+ *     https://www.iota.org/
+ */
+
 package coo;
 
 import cfb.pearldiver.PearlDiverLocalPoW;
 import com.google.common.base.Strings;
+import coo.crypto.Hasher;
 import coo.crypto.ISS;
+import jota.IotaLocalPoW;
 import jota.model.Transaction;
 import jota.pow.ICurl;
 import jota.pow.JCurl;
 import jota.pow.SpongeFactory;
 import jota.utils.Converter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
-import static jota.pow.SpongeFactory.Mode.CURLP27;
+public class MilestoneDatabase extends MilestoneSource {
 
-public class MilestoneDatabase {
-    public final static String EMPTY_HASH = Strings.repeat("9", 81);
-    public final static String EMPTY_TAG = Strings.repeat("9", 27);
-    private final String SEED;
-    private final String ROOT;
-    private final List<List<String>> layers;
+  private static final Logger log = LoggerFactory.getLogger(MilestoneDatabase.class);
+  private static final int NONCE_OFFSET = 2673 /* tx length in trytes */ - 27 /* nonce length in trytes */;
+  private static final int SIGNATURE_LENGTH = 27 * 81;
+  private static final int OFFSET = (ISS.FRAGMENT_LENGTH / 3);
+  private static final int LENGTH = (243 + 81 + 81 + 27 + 27 + 27) / 3;
 
-    public MilestoneDatabase(String path, String seed) throws IOException {
-        layers = loadLayers(path);
-        ROOT = layers.get(0).get(0);
-        SEED = seed;
+  private final SpongeFactory.Mode sigMode;
+  private final SpongeFactory.Mode powMode;
+  private final String seed;
+  private final String root;
+  private final List<List<String>> layers;
+  private final int security;
+
+
+  public MilestoneDatabase(SpongeFactory.Mode powMode, SpongeFactory.Mode sigMode, String path, String seed, int security) throws IOException {
+    this(powMode, sigMode, loadLayers(path), seed, security);
+  }
+
+  public MilestoneDatabase(SpongeFactory.Mode powMode, SpongeFactory.Mode sigMode, List<List<String>> layers, String seed, int security) {
+    root = layers.get(0).get(0);
+    this.layers = layers;
+    this.seed = seed;
+    this.security = security;
+    this.sigMode = sigMode;
+    this.powMode = powMode;
+  }
+
+  private static List<List<String>> loadLayers(String path) throws IOException {
+    Map<Integer, List<String>> result = new ConcurrentHashMap<>();
+
+    StreamSupport.stream(Files.newDirectoryStream(Paths.get(path)).spliterator(), true)
+        .forEach((Path p) -> {
+          int idx = Integer.parseInt(p.toString().split("\\.")[1]);
+          try {
+            result.put(idx, Files.readAllLines(p));
+          } catch (IOException e) {
+            log.error("failed to load layers from: {}", path, e);
+          }
+        });
+
+    return IntStream.range(0, result.size())
+            .mapToObj(result::get)
+            .peek(list -> Objects.requireNonNull(list, "Found a missing layer. please check: " + path))
+            .collect(Collectors.toList());
+  }
+
+  /**
+   * Calculates a list of siblings
+   *
+   * @param leafIdx
+   * @param layers
+   * @return
+   */
+  private static List<String> siblings(int leafIdx, List<List<String>> layers) {
+    List<String> siblings = new ArrayList<>(layers.size());
+
+    int curLayer = layers.size() - 1;
+
+    while (curLayer > 0) {
+      List<String> layer = layers.get(curLayer);
+      if ((leafIdx & 1) == 1) {
+        // odd
+        siblings.add(layer.get(leafIdx - 1));
+      } else {
+        siblings.add(layer.get(leafIdx + 1));
+      }
+
+      leafIdx /= 2;
+      curLayer--;
     }
 
-    public MilestoneDatabase(List<List<String>> layers, String seed) throws IOException {
-        this.layers = layers;
-        ROOT = layers.get(0).get(0);
-        SEED = seed;
+    return siblings;
+  }
+
+  @Override
+  public SpongeFactory.Mode getSignatureMode() {
+    return sigMode;
+  }
+
+  @Override
+  public SpongeFactory.Mode getPoWMode() {
+    return powMode;
+  }
+
+  @Override
+  public String getRoot() {
+    return root;
+  }
+
+  private IotaLocalPoW getPoWProvider() {
+    if (powMode == SpongeFactory.Mode.KERL) {
+      return new KerlPoW();
+    } else {
+      return new PearlDiverLocalPoW();
     }
+  }
 
-    public String getRoot() {
-        return ROOT;
+  private String getTagForIndex(int index) {
+    String tag;
+    int[] trits = new int[15];
+    for (int i = 0; i < index; i++) {
+      Converter.increment(trits, trits.length);
     }
+    tag = Converter.trytes(trits);
+    return Strings.padEnd(tag, 27, '9');
+  }
 
-    public List<Transaction> createMilestone(String trunk, String branch, int index, int mwm) {
-        List<Transaction> txs = new ArrayList<>();
-        PearlDiverLocalPoW pow = new PearlDiverLocalPoW();
+  @Override
+  public List<Transaction> createMilestone(String trunk, String branch, int index, int mwm) {
+
+    IotaLocalPoW pow = getPoWProvider();
+
+    // Get the siblings in the current merkle tree
+    List<String> leafSiblings = siblings(index, layers);
+    String siblingsTrytes = String.join("", leafSiblings);
+    siblingsTrytes = Strings.padEnd(siblingsTrytes, ISS.FRAGMENT_LENGTH / ISS.TRYTE_WIDTH, '9');
+
+    final String tag = getTagForIndex(index);
+
+    // A milestone consists of two transactions.
+    // The last transaction (currentIndex == lastIndex) contains the siblings for the merkle tree.
+    Transaction txSiblings = new Transaction();
+    txSiblings.setSignatureFragments(siblingsTrytes);
+    txSiblings.setAddress(EMPTY_HASH);
+    txSiblings.setCurrentIndex(security);
+    txSiblings.setLastIndex(security);
+    txSiblings.setTimestamp(System.currentTimeMillis() / 1000);
+    txSiblings.setObsoleteTag(EMPTY_TAG);
+    txSiblings.setValue(0);
+    txSiblings.setBundle(EMPTY_HASH);
+    txSiblings.setTrunkTransaction(trunk);
+    txSiblings.setBranchTransaction(branch);
+    txSiblings.setTag(EMPTY_TAG);
+    txSiblings.setNonce(EMPTY_TAG);
+
+    // The other transactions contain a signature that signs the siblings and thereby ensures the integrity.
+    List<Transaction> txs =
+        IntStream.range(0, security).mapToObj(i -> {
+          Transaction tx = new Transaction();
+          tx.setSignatureFragments(Strings.repeat("9", 27 * 81));
+          tx.setAddress(root);
+          tx.setCurrentIndex(i);
+          tx.setLastIndex(security);
+          tx.setTimestamp(System.currentTimeMillis() / 1000);
+          tx.setObsoleteTag(tag);
+          tx.setValue(0);
+          tx.setBundle(EMPTY_HASH);
+          tx.setTrunkTransaction(EMPTY_HASH);
+          tx.setBranchTransaction(trunk);
+          tx.setTag(tag);
+          tx.setNonce(EMPTY_TAG);
+          return tx;
+        }).collect(Collectors.toList());
+
+    txs.add(txSiblings);
+
+    String hashToSign;
 
 
-        List<String> leafSiblings = siblings(index, layers);
-        String siblingsTrytes = leafSiblings.stream().collect(Collectors.joining(""));
-        siblingsTrytes = Strings.padEnd(siblingsTrytes, 27 * 81, '9');
+    //calculate the bundle hash (same for Curl & Kerl)
+    String bundleHash = calculateBundleHash(txs);
+    txs.forEach(tx -> tx.setBundle(bundleHash));
 
-        String tag;
-        {
-            int[] trits = new int[15];
-            for (int i = 0; i < index; i++) {
-                Converter.increment(trits, trits.length);
-            }
-            tag = Converter.trytes(trits);
+    txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
+    if (sigMode == SpongeFactory.Mode.KERL) {
+      /*
+      In the case that the signature is created using KERL, we need to ensure that there exists no 'M'(=13) in the
+      normalized fragment that we're signing.
+       */
+      boolean hashContainsM;
+      int attempts = 0;
+      do {
+        int[] hashTrits = Hasher.hashTrytesToTrits(powMode, txSiblings.toTrytes());
+        int[] normHash = ISS.normalizedBundle(hashTrits);
+
+        hashContainsM = Arrays.stream(normHash).limit(ISS.NUMBER_OF_FRAGMENT_CHUNKS * security).anyMatch(elem -> elem == 13);
+        if (hashContainsM) {
+          txSiblings.setAttachmentTimestamp(System.currentTimeMillis());
+          txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
         }
-        tag = Strings.padEnd(tag, 27, '9');
+        attempts++;
+      } while (hashContainsM);
 
-        Transaction tx1 = new Transaction();
-        tx1.setSignatureFragments(siblingsTrytes);
-        tx1.setAddress(EMPTY_HASH);
-        tx1.setCurrentIndex(1);
-        tx1.setLastIndex(1);
-        tx1.setTimestamp(System.currentTimeMillis() / 1000);
-        tx1.setObsoleteTag(EMPTY_TAG);
-        tx1.setValue(0);
-        tx1.setBundle(EMPTY_HASH);
-        tx1.setTrunkTransaction(trunk);
-        tx1.setBranchTransaction(branch);
-        tx1.setTag(EMPTY_TAG);
-        tx1.setNonce(EMPTY_TAG);
+      log.info("KERL milestone generation took {} attempts.", attempts);
 
-        Transaction tx0 = new Transaction();
-        tx0.setSignatureFragments(Strings.repeat("9", 27 * 81));
-        tx0.setAddress(ROOT);
-        tx0.setCurrentIndex(0);
-        tx0.setLastIndex(1);
-        tx0.setTimestamp(System.currentTimeMillis() / 1000);
-        tx0.setObsoleteTag(tag);
-        tx0.setValue(0);
-        tx0.setBundle(EMPTY_HASH);
-        tx0.setTrunkTransaction(EMPTY_HASH);
-        tx0.setBranchTransaction(trunk);
-        tx0.setTag(tag);
-        tx0.setNonce(Strings.repeat("9", 27));
-
-        String bundleHash = generateBundleHash(tx0.toTrytes(), tx1.toTrytes());
-
-        tx0.setBundle(bundleHash);
-        tx1.setBundle(bundleHash);
-
-        tx1 = new Transaction(pow.performPoW(tx1.toTrytes(), mwm));
-        tx0.setTrunkTransaction(tx1.getHash());
-        tx0.setSignatureFragments(createSignature(index, tx1.getHash()));
-
-        tx0 = new Transaction(pow.performPoW(tx0.toTrytes(), mwm));
-
-        txs.add(tx0);
-        txs.add(tx1);
-        return txs;
     }
 
-    private String createSignature(int index, String tx1Hash) {
-        int[] tx1HashTrits = Converter.trits(tx1Hash);
-        int[] normalizedBundle = Arrays.copyOf(ISS.normalizedBundle(tx1HashTrits), 27);
+    hashToSign = Hasher.hashTrytes(powMode, txSiblings.toTrytes());
+    String signature = createSignature(sigMode, index, hashToSign);
+    txSiblings.setHash(hashToSign);
 
-        int[] subseed = ISS.subseed(CURLP27, Converter.trits(SEED), index);
-        int[] key = ISS.key(CURLP27, subseed, 1);
-        int[] signatureFragment = ISS.signatureFragment(CURLP27, normalizedBundle, key);
+    chainTransactionsFillSignatures(mwm, txs, signature);
 
-        return Converter.trytes(signatureFragment);
+    return txs;
+  }
+
+  private void chainTransactionsFillSignatures(int mwm, List<Transaction> txs, String signature) {
+    //to chain transactions we start from the LastIndex and move towards index 0.
+    Collections.reverse(txs);
+
+    txs.stream().skip(1).forEach(tx -> {
+        //copy signature fragment
+        String sigFragment = signature.substring((int) (tx.getCurrentIndex() * SIGNATURE_LENGTH),
+                (int) (tx.getCurrentIndex() + 1) * SIGNATURE_LENGTH);
+        tx.setSignatureFragments(sigFragment);
+
+        //chain bundle
+        String prevHash = txs.get((int) (tx.getLastIndex() - tx.getCurrentIndex() - 1)).getHash();
+        tx.setTrunkTransaction(prevHash);
+
+        //perform PoW
+        tx.setNonce(getPoWProvider().performPoW(tx.toTrytes(), mwm).substring(NONCE_OFFSET));
+        tx.setHash(Hasher.hashTrytes(powMode, tx.toTrytes()));
+    });
+
+    Collections.reverse(txs);
+  }
+
+  /**
+   * @param mode       sponge mode to use for signature creation
+   * @param index      key / tree leaf index to generate signature for
+   * @param hashToSign the hash to be signed
+   * @return
+   */
+  private String createSignature(SpongeFactory.Mode mode, int index, String hashToSign) {
+    int[] hashTrits = Converter.trits(hashToSign);
+    int[] normalizedBundle = ISS.normalizedBundle(hashTrits);
+
+    int[] subseed = ISS.subseed(mode, Converter.trits(seed), index);
+    int[] key = ISS.key(mode, subseed, security);
+
+    StringBuilder fragment = new StringBuilder();
+
+    for (int i = 0; i < security; i++) {
+      int[] curFrag = ISS.signatureFragment(mode,
+          Arrays.copyOfRange(normalizedBundle, i * ISS.NUMBER_OF_FRAGMENT_CHUNKS, (i + 1) * ISS.NUMBER_OF_FRAGMENT_CHUNKS),
+          Arrays.copyOfRange(key, i * ISS.FRAGMENT_LENGTH, (i + 1) * ISS.FRAGMENT_LENGTH));
+      fragment.append(Converter.trytes(curFrag));
     }
 
-    private String generateBundleHash(String tx0, String tx1) {
-        final int OFFSET = (6561 / 3);
-        final int LENGTH = (243 + 81 + 81 + 27 + 27 + 27) / 3;
+    return fragment.toString();
+  }
 
-        int[] t0 = Converter.trits(tx0.substring(OFFSET, OFFSET + LENGTH));
-        int[] t1 = Converter.trits(tx1.substring(OFFSET, OFFSET + LENGTH));
+  private String calculateBundleHash(List<Transaction> txs) {
 
-        ICurl sponge = SpongeFactory.create(SpongeFactory.Mode.KERL);
-        sponge.absorb(t0);
-        sponge.absorb(t1);
-        sponge.squeeze(t0, 0, JCurl.HASH_LENGTH);
+    ICurl sponge = SpongeFactory.create(SpongeFactory.Mode.KERL);
 
-        return Converter.trytes(t0, 0, JCurl.HASH_LENGTH);
+    for (Transaction tx : txs) {
+      sponge.absorb(Converter.trits(tx.toTrytes().substring(OFFSET, OFFSET + LENGTH)));
     }
 
-    private List<String> siblings(int leafIdx, List<List<String>> layers) {
-        List<String> siblings = new ArrayList<>();
+    int[] bundleHashTrits = new int[JCurl.HASH_LENGTH];
+    sponge.squeeze(bundleHashTrits, 0, JCurl.HASH_LENGTH);
 
-        int curLayer = layers.size() - 1;
-
-        while (curLayer > 0) {
-            List<String> layer = layers.get(curLayer);
-            if ((leafIdx & 1) == 1) {
-                // odd
-                siblings.add(layer.get(--leafIdx));
-            } else {
-                siblings.add(layer.get(leafIdx + 1));
-            }
-
-            leafIdx >>= 1;
-            curLayer--;
-        }
-
-        return siblings;
-    }
-
-    private List<List<String>> loadLayers(String path) throws IOException {
-        Map<Integer, List<String>> result = new ConcurrentHashMap<>();
-
-        StreamSupport.stream(Files.newDirectoryStream(Paths.get(path)).spliterator(), true)
-                .forEach((Path p) -> {
-                    int idx = Integer.parseInt(p.toString().split("\\.")[1]);
-                    try {
-                        result.put(idx, Files.readAllLines(p));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                });
-
-        return result.entrySet().stream().map((e) -> e.getValue()).collect(Collectors.toList());
-    }
+    return Converter.trytes(bundleHashTrits, 0, JCurl.HASH_LENGTH);
+  }
 }

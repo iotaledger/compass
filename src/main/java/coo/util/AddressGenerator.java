@@ -1,3 +1,28 @@
+/*
+ * This file is part of TestnetCOO.
+ *
+ * Copyright (C) 2018 IOTA Stiftung
+ * TestnetCOO is Copyright (C) 2017-2018 IOTA Stiftung
+ *
+ * TestnetCOO is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * TestnetCOO is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with TestnetCOO.  If not, see:
+ *      http://www.gnu.org/licenses/
+ *
+ * For more information contact:
+ *     IOTA Stiftung <contact@iota.org>
+ *     https://www.iota.org/
+ */
+
 package coo.util;
 
 import coo.crypto.ISSInPlace;
@@ -14,46 +39,51 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+
+/**
+ * Given a seed, calculates a list of addresses to be used for Milestone Merkle Tree generation
+ */
 public class AddressGenerator {
-    public static SpongeFactory.Mode MODE = SpongeFactory.Mode.CURLP27;
-    public final int COUNT;
-    private final String SEED;
-    private final int[] SEEDt;
+    public final SpongeFactory.Mode mode;
+    private final int count;
+    private final int[] seedTrits;
+    private final int security;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public AddressGenerator(String seed, int depth) {
-        this.SEED = seed;
-        this.SEEDt = Converter.trits(seed);
-        this.COUNT = 1 << depth;
+    public AddressGenerator(SpongeFactory.Mode mode, String seed, int security, int depth) {
+        this.seedTrits = Converter.trits(seed);
+        this.count = 1 << depth;
+        this.mode = mode;
+        this.security = security;
     }
 
     public static void main(String[] args) throws IOException {
-        if (args.length != 3) {
-            throw new IllegalArgumentException("Usage: <seed> <depth> <outfile>");
+        if (args.length != 5) {
+            throw new IllegalArgumentException("Usage: <sigMode> <seed> <security> <depth> <outfile>");
         }
 
-        new AddressGenerator(args[0], Integer.parseInt(args[1])).work(args[2]);
+        new AddressGenerator(SpongeFactory.Mode.valueOf(args[0]), args[1], Integer.parseInt(args[2]), Integer.parseInt(args[3])).work(args[4]);
     }
 
     public String calculateAddress(int idx) {
         int[] subseed = new int[JCurl.HASH_LENGTH];
-        int[] key = new int[ISSInPlace.FRAGMENT_LENGTH];
+        int[] key = new int[ISSInPlace.FRAGMENT_LENGTH * security];
         int[] digests = new int[key.length / ISSInPlace.FRAGMENT_LENGTH * JCurl.HASH_LENGTH];
         int[] address = new int[JCurl.HASH_LENGTH];
 
-        System.arraycopy(SEEDt, 0, subseed, 0, subseed.length);
-        ISSInPlace.subseed(MODE, subseed, idx);
-        ISSInPlace.key(MODE, subseed, key);
-        ISSInPlace.digests(MODE, key, digests);
-        ISSInPlace.address(MODE, digests, address);
+        System.arraycopy(seedTrits, 0, subseed, 0, subseed.length);
+        ISSInPlace.subseed(mode, subseed, idx);
+        ISSInPlace.key(mode, subseed, key);
+        ISSInPlace.digests(mode, key, digests);
+        ISSInPlace.address(mode, digests, address);
 
         return Converter.trytes(address);
     }
 
     public List<String> calculateAllAddresses() {
-        log.info("Calculating " + COUNT + " addresses.");
-        List<String> outList = IntStream.range(0, COUNT)
+        log.info("Calculating " + count + " addresses.");
+        List<String> outList = IntStream.range(0, count)
                 .mapToObj(this::calculateAddress)
                 .parallel()
                 .collect(Collectors.toList());
