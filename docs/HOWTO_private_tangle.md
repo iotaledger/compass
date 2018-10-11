@@ -14,9 +14,9 @@ A private Tangle can consist of a single IRI instance. The instructions below wi
 - The Coordinator (COO)
 
 ## Important things to note
-The instructions above do not consider all individual circumstances of your setup. They are meant to give you an understanding on how to bootstrap your own Private Tangle on a 1 node network topology. More complex setups can be achieved by running more IRI nodes interconnected between each other.
+The instructions below do not consider all individual circumstances of your setup. They are meant to give you an understanding on how to bootstrap your own Private Tangle on a 1 node network topology. More complex setups can be achieved by running more IRI nodes interconnected between each other.
 
-If you prefer to use Docker to set up IRI instances, we provide [IRI docker containers](https://hub.docker.com/r/iotaledger/iri/). We recommend to adapting the instructions below by following the [IRI Docker instructions](https://github.com/iotaledger/iri/blob/dev/DOCKER.md).
+If you prefer to use Docker to set up IRI instances, we provide [IRI docker containers](https://hub.docker.com/r/iotaledger/iri/). We recommend adapting the instructions below by following the [IRI Docker instructions](https://github.com/iotaledger/iri/blob/dev/DOCKER.md).
 
 ## Step 1: Create the IRI node
 IRI is an open source, Java reference implementation of the IOTA protocol. The development of IRI is supported by the IOTA Foundation.
@@ -41,7 +41,7 @@ cd /iri
 wget https://github.com/iotaledger/iri/releases/download/<version>/<jar file version>.jar 
 ```
 
-Replace `version` and `jar file version` with the latest number, for example, `v1.5.5` and `iri-1.5.5`. For example, IRI 1.5.5: 
+Replace `version` and `jar file version` with the latest version, for example, `v1.5.5` and `iri-1.5.5`. For example, IRI 1.5.5: 
 `https://github.com/iotaledger/iri/releases/download/v1.5.5/iri-1.5.5.jar` 
 
 #### Install Oracle Java 8 JRE
@@ -69,7 +69,7 @@ ZMQ_ENABLED = TRUE
 TESTNET = TRUE
 MWM = 9
 SNAPSHOT_FILE = /iri/conf/snapshots.txt
-COORDINATOR = "coordinator address value"
+COORDINATOR = "coordinator address value" //TODO update with Coordinator address in a later step.
 MILESTONE_START_INDEX = 2
 MAX_DEPTH = 1000
 ```
@@ -113,7 +113,7 @@ Keep in mind this process is highly CPU intensive. For example,generating a dept
 
 ```
 cd coordinator
-./bin/addressGenerator CURLP27 <coo seed value> 20 layers.csv
+./bin/addressGenerator CURLP27 <coo seed value> 1 20 layers.csv
 ```
 
 Please change `<coo seed value>` with your own COO seed.
@@ -208,7 +208,7 @@ The IRI node is now running but it has not received its first milestone. We need
 
 ```
 cd /root/coordinator
-./bin/coordinator -layers layers -host http://localhost:14265 -seed <coo seed value> -tick 40000 -depthScale 1.01 -depth 3 -broadcast -mwm 9 -index 2 -bootstrap
+./bin/coordinator -layers layers -host http://localhost:14265 -seed <coo seed value> -tick 40000 -depthScale 1.01 -depth 3 -broadcast -mwm 9 -index 2 -sigMode CURLP27 -powMode CURLP81 -bootstrap
 ```
 
 Please change `<coo seed value>` with your own COO seed.
@@ -218,16 +218,16 @@ Let this command run until you see output similar to:
 07/20 09:10:43.699 [Latest Milestone Tracker] INFO  com.iota.iri.Milestone - Latest milestone has changed from #2 to #3
 07/20 09:10:45.385 [Solid Milestone Tracker] INFO  com.iota.iri.Milestone - Latest SOLID SUBTANGLE milestone has changed from #2 to #3
 ```
-As soon as you see the following output, you can kill the `./bin/coordinator` command by hitting CTRL-C. The Tangle has been bootstrapped. You can now issue another COO command that will run indefinitely. 
+As soon as you see the following output, you can kill the `./bin/coordinator` command by hitting CTRL-C. The Tangle has been bootstrapped. You can now issue another COO command again, that will run indefinitely. The command will now be issued without the without the `-bootstrap` option.
 At this stage we recommend to run the following command via a screen session.
 
 ```
-./bin/coordinator -layers layers -host http://localhost:14265 -seed <coo seed value> -tick 40000 -depthScale 1.01 -depth 3 -broadcast -mwm 9
+./bin/coordinator -layers layers -host http://localhost:14265 -seed <coo seed value> -tick 40000 -depthScale 1.01 -depth 3 -broadcast -mwm 9 -sigMode CURLP27 -powMode CURLP81
 ```
 
 Please change `<coo seed value>` with your own COO seed.
 
-A new milestone will be issued by the COO every 40 seconds. IRI should show this in its logs by displaying output similar to:
+A new milestone will be issued by the COO every 40 seconds (set by `-tick 40000`). IRI should show this in its logs by displaying output similar to:
 
 ```
 07/20 09:13:48.699 [Latest Milestone Tracker] INFO  com.iota.iri.Milestone - Latest milestone has changed from #3 to #4
