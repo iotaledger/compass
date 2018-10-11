@@ -68,7 +68,7 @@ Create a file `/iri/conf/iota.ini` with your editor of choice and paste the foll
 ZMQ_ENABLED = TRUE
 TESTNET = TRUE
 MWM = 9
-SNAPSHOT_FILE = /iri/conf/snapshots.txt
+SNAPSHOT_FILE = /iri/conf/snapshot.txt
 COORDINATOR = "coordinator address value" //TODO update with Coordinator address in a later step.
 MILESTONE_START_INDEX = 2
 MAX_DEPTH = 1000
@@ -157,7 +157,7 @@ WorkingDirectory=/iri
 TimeoutStartSec=0
 Restart=always
 ExecStart=/usr/bin/java \
--Xms1G -Xmx6G
+-Xms1G -Xmx6G \
 -Djava.net.preferIPv4Stack=true \
 -jar <jar file value> \
 -c conf/iota.ini \
