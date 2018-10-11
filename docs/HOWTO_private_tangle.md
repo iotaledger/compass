@@ -74,7 +74,7 @@ MILESTONE_START_INDEX = 2
 MAX_DEPTH = 1000
 ```
 
-`MAX_DEPTH = 1000` - only required on the node where the COO will be issuing milestones. If you are creating more than one IRI node, we recommend you remove this option from their `/iri/conf/iota.ini` file.
+`MAX_DEPTH = 1000` - only required on the node where the COO will be issuing milestones. If you are creating more than one IRI node, we recommend you remove this option from their `iota.ini` file.
 `MWM = 9` - sets the minimum weight magnitude (MWM) required by a client when performing proof-of-work (PoW). The minimum value that can be configured is 9. A value lower than that requires code changes in the network stack. Keep in mind that an MWM of 9 requires a negligible amount of PoW, so we do not expect any requirement to lower it further. For comparison, the IOTA Mainnet Network uses `MWM = 14`.
 `COORDINATOR` - we will bootstrap the coordinator in **Step 2** and replace the setting value with the correct value.
 
@@ -103,13 +103,13 @@ We now need to bootstrap the coordinator milestone merkle tree. Generate a valid
 cat /dev/urandom |LC_ALL=C tr -dc 'A-Z9' | fold -w 81 | head -n 1 
 ```
 
-The output of the command above will be a random string of 81 chars, all capital letters.
+The output of the command above will be a random string of 81 chars, all capital letters, such as this: `COOSEED99999999999999999999999999999999999999999999999999999999999999999999999999`. 
 
 
 Decide on the depth of the coordinator. 
 The higher the number, the more milestones can be issued: At depth 18, = ~260 thousand milestones, 20 = ~1 million milestones, 21 = ~2 million milestones – or more precisely 2^DEPTH. For this exercise, we use depth 20 — allowing 2^20 milestones to be issued. We will later see that milestones will be issued every 40 seconds.
 
-Keep in mind this process is highly CPU intensive. For example,generating a depth 20 tree on a 64 CPU server takes about 1 hour.
+Keep in mind this process is highly CPU intensive. For example, generating a depth 20 tree on a 64 CPU server takes about 1 hour.
 
 ```
 cd coordinator
@@ -137,8 +137,8 @@ cat layers/layer.0.csv
 The output is an 81 char string. For example `QAXEPOBAWUVWTPTVDBCDMMQOUXOWZUGAJKAJORW9YKBQWDDUGATZRKZUQMXQFQAOEHJWFNWHS9MQSGHPO`. We call this the COO address.
 
 1. Copy the COO address.
-2. Open the `/iri/conf/iota.ini` file. 
-3. Replace the placeholder `"coordinator address value"` value in the `COORDINATOR` option.
+2. Open the `iota.ini` file. 
+3. Replace the placeholder `"coordinator address value"` value in the `COORDINATOR` option with the copied COO address.
 
 ## Step 3: Running the Node
 It’s time to start the node. The following step assumes you are running with Ubuntu or any other Linux distribution that uses `systemd`.
