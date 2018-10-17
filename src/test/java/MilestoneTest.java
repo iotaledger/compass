@@ -34,6 +34,8 @@ import jota.pow.SpongeFactory;
 import jota.utils.Converter;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.util.Arrays;
 import java.util.List;
@@ -44,6 +46,7 @@ import static jota.pow.SpongeFactory.Mode.*;
 /**
  * Tests milestone generation & verifies the signatures
  */
+@RunWith(JUnit4.class)
 public class MilestoneTest {
   private void runForMode(SpongeFactory.Mode powMode, SpongeFactory.Mode sigMode, int security) {
     final String seed = TestUtil.nextSeed();
