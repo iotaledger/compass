@@ -1,0 +1,10 @@
+{
+  "seed": "MYSEEDHEREPLEASEREPLACEMEIMMEDIATELYWITHSOMETHINGSECURE99999999999999999999999999",
+  "powMode": "KERL",
+  "sigMode": "CURLP27",
+  "security": 2,
+  "depth": 5,
+  "mwm": 9,
+  "tick": 60000,
+  "host": "http://iri01.devnet.iota.cafe:14265"
+}
