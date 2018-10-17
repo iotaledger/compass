@@ -5,6 +5,7 @@ container_image(
     base = "@java_base//image",
     cmd = ["address_generator_deploy.jar"],
     files = ["//:address_generator_deploy.jar"],
+    repository = "iota/compass",
 )
 
 container_image(
@@ -12,6 +13,7 @@ container_image(
     base = "@java_base//image",
     cmd = ["merkle_tree_calculator_deploy.jar"],
     files = ["//:merkle_tree_calculator_deploy.jar"],
+    repository = "iota/compass",
 )
 
 container_image(
@@ -19,6 +21,7 @@ container_image(
     base = "@java_base//image",
     cmd = ["coordinator_deploy.jar"],
     files = ["//:coordinator_deploy.jar"],
+    repository = "iota/compass",
 )
 
 container_image(
@@ -26,4 +29,5 @@ container_image(
     base = "@java_base//image",
     cmd = ["shadowing_coordinator_deploy.jar"],
     files = ["//:shadowing_coordinator_deploy.jar"],
+    repository = "iota/compass",
 )
