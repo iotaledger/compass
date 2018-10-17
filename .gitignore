@@ -1,6 +1,7 @@
 .meghanada/
 bazel-*
 bazel-*/
+target/
 
 layers/
 addresses.csv
