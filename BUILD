@@ -3,6 +3,13 @@ MAIN_BASE_PATH = "src/main/java/coo/%s"
 java_import(
     name = "jota",
     jars = ["libs/jota-0.9.11-SNAPSHOT.jar"],
+    runtime_deps = [
+        "@com_squareup_okhttp3_okhttp//jar",
+        "@com_squareup_retrofit2_converter_gson//jar",
+        "@com_squareup_retrofit2_retrofit2//jar",
+        "@commons_io_commons_io//jar",
+        "@org_bouncycastle_bcprov_jdk15on//jar",
+    ],
 )
 
 java_library(
@@ -71,12 +78,16 @@ java_binary(
     ],
 )
 
+COORDINATOR_RUNTIME_DEPS = [
+    "@org_slf4j_slf4j_simple//jar",
+]
+
 java_binary(
     name = "shadowing_coordinator",
     srcs = [MAIN_BASE_PATH % "shadow/ShadowingCoordinator.java"],
     main_class = "coo.shadow.ShadowingCoordinator",
     visibility = ["//visibility:public"],
-    runtime_deps = ["@org_slf4j_slf4j_simple//jar"],
+    runtime_deps = COORDINATOR_RUNTIME_DEPS,
     deps = [
         ":common",
         ":conf",
@@ -92,7 +103,7 @@ java_binary(
     srcs = [MAIN_BASE_PATH % "Coordinator.java"],
     main_class = "coo.Coordinator",
     visibility = ["//visibility:public"],
-    runtime_deps = ["@org_slf4j_slf4j_simple//jar"],
+    runtime_deps = COORDINATOR_RUNTIME_DEPS,
     deps = [
         ":common",
         ":conf",
