@@ -6,5 +6,5 @@
   "depth": 5,
   "mwm": 9,
   "tick": 60000,
-  "host": "http://iri01.devnet.iota.cafe:14265"
+  "host": "http://localhost:14265"
 }

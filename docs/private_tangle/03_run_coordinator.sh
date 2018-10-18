@@ -3,7 +3,7 @@
 . lib.sh
 load_config
 
-docker run -t --rm -v `pwd`/data:/data iota/compass/docker:coordinator coordinator_deploy.jar \
+docker run -t --net host --rm -v `pwd`/data:/data iota/compass/docker:coordinator coordinator_deploy.jar \
 	-layers /data/layers \
 	-sigMode $sigMode \
 	-powMode $powMode \
