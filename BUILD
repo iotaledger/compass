@@ -91,7 +91,7 @@ java_library(
 java_binary(
     name = "address_generator",
     srcs = [MAIN_BASE_PATH % "util/AddressGenerator.java"],
-    main_class = "coo.util.AddressGenerator",
+    main_class = "org.iota.compass.util.AddressGenerator",
     visibility = ["//visibility:public"],
     runtime_deps = ["@org_slf4j_slf4j_simple//jar"],
     deps = [
@@ -104,7 +104,7 @@ java_binary(
 java_binary(
     name = "merkle_tree_calculator",
     srcs = [MAIN_BASE_PATH % "util/MerkleTreeCalculator.java"],
-    main_class = "coo.util.MerkleTreeCalculator",
+    main_class = "org.iota.compass.util.MerkleTreeCalculator",
     visibility = ["//visibility:public"],
     runtime_deps = ["@org_slf4j_slf4j_simple//jar"],
     deps = [
@@ -122,7 +122,7 @@ COORDINATOR_RUNTIME_DEPS = [
 java_binary(
     name = "shadowing_coordinator",
     srcs = [MAIN_BASE_PATH % "shadow/ShadowingCoordinator.java"],
-    main_class = "coo.shadow.ShadowingCoordinator",
+    main_class = "org.iota.compass.shadow.ShadowingCoordinator",
     visibility = ["//visibility:public"],
     runtime_deps = COORDINATOR_RUNTIME_DEPS,
     deps = [
@@ -141,7 +141,7 @@ java_binary(
 java_binary(
     name = "coordinator",
     srcs = [MAIN_BASE_PATH % "Coordinator.java"],
-    main_class = "coo.Coordinator",
+    main_class = "org.iota.compass.Coordinator",
     visibility = ["//visibility:public"],
     runtime_deps = COORDINATOR_RUNTIME_DEPS,
     deps = [

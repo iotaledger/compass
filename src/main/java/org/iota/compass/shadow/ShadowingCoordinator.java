@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
 
 
 /**
- * As opposed to the regular `coo.Coordinator`, this coordinator will issue shadow milestones for an existing list of milestones.
+ * As opposed to the regular `org.iota.compass.Coordinator`, this coordinator will issue shadow milestones for an existing list of milestones.
  * This is useful if you want to migrate an existing Coordinator to a new seed or hashing method.
  * <p>
  * !!! *NOTE* that the IRI node this ShadowingCoordinator talks to should already be configured to use the new Coordinator address !!!
