@@ -27,22 +27,13 @@ package org.iota.compass.conf;
 
 import com.beust.jcommander.Parameter;
 
-public class BaseConfiguration {
-  @Parameter(names = "-layers", description = "Path to folder containing Merkle Tree layers", required = true)
-  public String layersPath;
+public class InMemorySignatureSourceConfiguration {
+  @Parameter(names = "-seed", description = "Seed", required = true)
+  public String seed;
 
-  @Parameter(names = "-host", description = "URL for IRI host", required = true)
-  public String host;
+  @Parameter(names = "-sigMode", description = "Sponge mode to use for signature creation (one of CURLP27, CURLP81, KERL)", required = true)
+  public String sigMode = "CURLP27";
 
-  @Parameter(names = "-mwm", description = "Minimum Weight Magnitude", required = true)
-  public int MWM = 9;
-
-  @Parameter(names = "-broadcast", description = "Should Coordinator really broadcast milestones?")
-  public boolean broadcast = false;
-
-  @Parameter(names = "-powMode", description = "Sponge mode to use for Proof of Work (one of CURLP81, KERL)", required = true, validateWith = {POWModeValidator.class})
-  public String powMode = "CURLP81";
-
-  @Parameter(names = "-signatureSource", description = "Signature source type (can be 'inmemory' or 'local')", required = true)
-  public String signatureSource = "inmemory";
+  @Parameter(names = "-security", description = "Security level to use. Value must be in [1;3]")
+  public Integer security = 1;
 }

@@ -41,6 +41,30 @@ java_library(
     deps = [
         ":common",
         ":jota",
+        "@org_slf4j_slf4j_api//jar",
+    ],
+)
+
+java_library(
+    name = "remote_signature_source",
+    srcs = [MAIN_BASE_PATH % "RemoteSignatureSource.java"],
+    deps = [
+        ":common",
+        ":jota",
+        "//proto:signature_source_java_grpc",
+        "//proto:signature_source_java_proto",
+        "@com_google_api_grpc_proto_google_common_protos//jar",
+        "@com_google_code_findbugs_jsr305//jar",
+        "@com_google_guava_guava//jar",
+        "@com_google_protobuf//:protobuf_java",
+        "@com_google_protobuf//:protobuf_java_util",
+        "@io_grpc_grpc_java//alts",
+        "@io_grpc_grpc_java//core",
+        "@io_grpc_grpc_java//netty",
+        "@io_grpc_grpc_java//protobuf",
+        "@io_grpc_grpc_java//stub",
+        "@io_netty_netty_handler//jar",
+        "@org_slf4j_slf4j_api//jar",
     ],
 )
 
@@ -49,6 +73,8 @@ java_library(
     srcs = [
         (MAIN_BASE_PATH % x)
         for x in [
+            "conf/InMemorySignatureSourceConfiguration.java",
+            "conf/RemoteSignatureSourceConfiguration.java",
             "conf/BaseConfiguration.java",
             "conf/Configuration.java",
             "conf/ShadowingConfiguration.java",
@@ -102,8 +128,10 @@ java_binary(
     deps = [
         ":common",
         ":conf",
+        ":coordinator",
         ":inmemory_signature_source",
         ":jota",
+        ":remote_signature_source",
         "@com_beust_jcommander//jar",
         "@org_apache_commons_commons_lang3//jar",
         "@org_slf4j_slf4j_api//jar",
@@ -121,6 +149,7 @@ java_binary(
         ":conf",
         ":inmemory_signature_source",
         ":jota",
+        ":remote_signature_source",
         "@com_beust_jcommander//jar",
         "@org_slf4j_slf4j_api//jar",
     ],

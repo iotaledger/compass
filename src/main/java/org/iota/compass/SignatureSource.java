@@ -14,7 +14,7 @@ public abstract class SignatureSource {
    * @param index
    * @return trit-array containing the key
    */
-  public abstract int[] getKey(int index);
+  protected abstract int[] getKey(long index);
 
 
   /**

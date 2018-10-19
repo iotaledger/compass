@@ -33,21 +33,22 @@ import jota.dto.response.GetTransactionsToApproveResponse;
 import jota.error.ArgumentException;
 import jota.model.Transaction;
 import jota.pow.SpongeFactory;
+import org.iota.compass.conf.InMemorySignatureSourceConfiguration;
+import org.iota.compass.conf.RemoteSignatureSourceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 
 public class Coordinator {
+  private static final Logger log = LoggerFactory.getLogger(Coordinator.class);
   private final URL node;
   private final MilestoneSource db;
   private final IotaAPI api;
   private final Configuration config;
-
-  private static final Logger log = LoggerFactory.getLogger(Coordinator.class);
-
   private int latestMilestone;
   private String latestMilestoneHash;
   private long latestMilestoneTime;
@@ -55,14 +56,12 @@ public class Coordinator {
   private long milestoneTick;
   private int depth;
 
-  public Coordinator(Configuration config) throws IOException {
+  public Coordinator(Configuration config, SignatureSource signatureSource) throws IOException {
     this.config = config;
     this.node = new URL(config.host);
 
-    final SignatureSource signatureProvider = new InMemorySignatureSource(SpongeFactory.Mode.valueOf(config.sigMode),
-        config.seed, config.security);
     this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.powMode),
-        signatureProvider, config.layersPath);
+        signatureSource, config.layersPath);
     this.api = new IotaAPI.Builder()
         .protocol(this.node.getProtocol())
         .host(this.node.getHost())
@@ -70,14 +69,40 @@ public class Coordinator {
         .build();
   }
 
+  public static SignatureSource signatureSourceFromArgs(String signatureSourceType, String[] args) throws SSLException {
+    SignatureSource signatureSource;
+    if (signatureSourceType.equals("remote")) {
+      RemoteSignatureSourceConfiguration sourceConf = new RemoteSignatureSourceConfiguration();
+      JCommander.newBuilder().addObject(sourceConf).acceptUnknownOptions(true).build().parse(args);
+
+      if (sourceConf.plaintext) {
+        signatureSource = new RemoteSignatureSource(sourceConf.uri);
+      } else {
+        signatureSource = new RemoteSignatureSource(sourceConf.uri, sourceConf.trustCertCollection, sourceConf.clientCertChain, sourceConf.clientKey);
+
+      }
+    } else if (signatureSourceType.equals("inmemory")) {
+      InMemorySignatureSourceConfiguration sourceConf = new InMemorySignatureSourceConfiguration();
+      JCommander.newBuilder().addObject(sourceConf).acceptUnknownOptions(true).build().parse(args);
+
+      signatureSource = new InMemorySignatureSource(SpongeFactory.Mode.valueOf(sourceConf.sigMode), sourceConf.seed, sourceConf.security);
+    } else {
+      throw new IllegalArgumentException("Invalid signatureSource type: " + signatureSourceType);
+    }
+
+    return signatureSource;
+  }
+
   public static void main(String[] args) throws Exception {
     Configuration config = new Configuration();
+
     JCommander.newBuilder()
         .addObject(config)
+        .acceptUnknownOptions(true)
         .build()
         .parse(args);
 
-    Coordinator coo = new Coordinator(config);
+    Coordinator coo = new Coordinator(config, signatureSourceFromArgs(config.signatureSource, args));
     coo.setup();
     coo.start();
   }

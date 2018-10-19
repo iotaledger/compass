@@ -27,22 +27,19 @@ package org.iota.compass.conf;
 
 import com.beust.jcommander.Parameter;
 
-public class BaseConfiguration {
-  @Parameter(names = "-layers", description = "Path to folder containing Merkle Tree layers", required = true)
-  public String layersPath;
+public class RemoteSignatureSourceConfiguration {
+  @Parameter(names = "-signatureSourceURI", description = "URI for remote signature source", required = true)
+  public String uri;
 
-  @Parameter(names = "-host", description = "URL for IRI host", required = true)
-  public String host;
+  @Parameter(names = "-signatureSourcePlaintext", description = "Whether to communicate with signatureSource in plaintext", required = true)
+  public boolean plaintext = false;
 
-  @Parameter(names = "-mwm", description = "Minimum Weight Magnitude", required = true)
-  public int MWM = 9;
+  @Parameter(names = "-signatureSourceTrustCertCollection", description = "Path to trust cert collection for encrypted connection to remote signature source server")
+  public String trustCertCollection = null;
 
-  @Parameter(names = "-broadcast", description = "Should Coordinator really broadcast milestones?")
-  public boolean broadcast = false;
+  @Parameter(names = "-signatureSourceClientCertChain", description = "Path to client certificate chain to use for authenticating to the remote signature source server")
+  public String clientCertChain = null;
 
-  @Parameter(names = "-powMode", description = "Sponge mode to use for Proof of Work (one of CURLP81, KERL)", required = true, validateWith = {POWModeValidator.class})
-  public String powMode = "CURLP81";
-
-  @Parameter(names = "-signatureSource", description = "Signature source type (can be 'inmemory' or 'local')", required = true)
-  public String signatureSource = "inmemory";
+  @Parameter(names = "-signatureSourceClientKey", description = "Path to private key to use for authenticating to the remote signature source server")
+  public String clientKey = null;
 }

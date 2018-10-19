@@ -26,10 +26,7 @@
 package org.iota.compass.shadow;
 
 import com.beust.jcommander.JCommander;
-import org.iota.compass.InMemorySignatureSource;
-import org.iota.compass.MilestoneDatabase;
-import org.iota.compass.MilestoneSource;
-import org.iota.compass.SignatureSource;
+import org.iota.compass.*;
 import org.iota.compass.conf.ShadowingConfiguration;
 import org.iota.compass.crypto.Hasher;
 import jota.IotaAPI;
@@ -67,13 +64,11 @@ public class ShadowingCoordinator {
   private final MilestoneSource db;
   private List<OldMilestone> oldMilestones;
 
-  public ShadowingCoordinator(ShadowingConfiguration config) throws IOException {
+  public ShadowingCoordinator(ShadowingConfiguration config, SignatureSource signatureSource) throws IOException {
     this.config = config;
 
-    final SignatureSource signatureProvider = new InMemorySignatureSource(SpongeFactory.Mode.valueOf(config.sigMode),
-        config.seed, config.security);
     this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.powMode),
-        signatureProvider, config.layersPath);
+        signatureSource, config.layersPath);
     this.node = new URL(config.host);
     this.api = new IotaAPI.Builder()
         .protocol(this.node.getProtocol())
@@ -89,7 +84,7 @@ public class ShadowingCoordinator {
         .build()
         .parse(args);
 
-    ShadowingCoordinator coo = new ShadowingCoordinator(config);
+    ShadowingCoordinator coo = new ShadowingCoordinator(config, Coordinator.signatureSourceFromArgs(config.signatureSource, args));
     coo.setup();
     coo.start();
   }

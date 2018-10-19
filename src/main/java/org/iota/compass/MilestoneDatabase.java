@@ -57,19 +57,19 @@ public class MilestoneDatabase extends MilestoneSource {
   private static final int LENGTH = (243 + 81 + 81 + 27 + 27 + 27) / 3;
 
   private final SpongeFactory.Mode powMode;
-  private final SignatureSource signatureProvider;
+  private final SignatureSource signatureSource;
   private final String root;
   private final List<List<String>> layers;
 
 
-  public MilestoneDatabase(SpongeFactory.Mode powMode, SignatureSource signatureProvider, String path) throws IOException {
-    this(powMode, signatureProvider, loadLayers(path));
+  public MilestoneDatabase(SpongeFactory.Mode powMode, SignatureSource signatureSource, String path) throws IOException {
+    this(powMode, signatureSource, loadLayers(path));
   }
 
-  public MilestoneDatabase(SpongeFactory.Mode powMode, SignatureSource signatureProvider, List<List<String>> layers) {
+  public MilestoneDatabase(SpongeFactory.Mode powMode, SignatureSource signatureSource, List<List<String>> layers) {
     root = layers.get(0).get(0);
     this.layers = layers;
-    this.signatureProvider = signatureProvider;
+    this.signatureSource = signatureSource;
     this.powMode = powMode;
   }
 
@@ -165,8 +165,8 @@ public class MilestoneDatabase extends MilestoneSource {
     Transaction txSiblings = new Transaction();
     txSiblings.setSignatureFragments(siblingsTrytes);
     txSiblings.setAddress(EMPTY_HASH);
-    txSiblings.setCurrentIndex(signatureProvider.getSecurity());
-    txSiblings.setLastIndex(signatureProvider.getSecurity());
+    txSiblings.setCurrentIndex(signatureSource.getSecurity());
+    txSiblings.setLastIndex(signatureSource.getSecurity());
     txSiblings.setTimestamp(System.currentTimeMillis() / 1000);
     txSiblings.setObsoleteTag(EMPTY_TAG);
     txSiblings.setValue(0);
@@ -178,12 +178,12 @@ public class MilestoneDatabase extends MilestoneSource {
 
     // The other transactions contain a signature that signs the siblings and thereby ensures the integrity.
     List<Transaction> txs =
-        IntStream.range(0, signatureProvider.getSecurity()).mapToObj(i -> {
+        IntStream.range(0, signatureSource.getSecurity()).mapToObj(i -> {
           Transaction tx = new Transaction();
           tx.setSignatureFragments(Strings.repeat("9", 27 * 81));
           tx.setAddress(root);
           tx.setCurrentIndex(i);
-          tx.setLastIndex(signatureProvider.getSecurity());
+          tx.setLastIndex(signatureSource.getSecurity());
           tx.setTimestamp(System.currentTimeMillis() / 1000);
           tx.setObsoleteTag(tag);
           tx.setValue(0);
@@ -205,7 +205,7 @@ public class MilestoneDatabase extends MilestoneSource {
     txs.forEach(tx -> tx.setBundle(bundleHash));
 
     txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
-    if (signatureProvider.getSignatureMode() == SpongeFactory.Mode.KERL) {
+    if (signatureSource.getSignatureMode() == SpongeFactory.Mode.KERL) {
       /*
       In the case that the signature is created using KERL, we need to ensure that there exists no 'M'(=13) in the
       normalized fragment that we're signing.
@@ -216,7 +216,7 @@ public class MilestoneDatabase extends MilestoneSource {
         int[] hashTrits = Hasher.hashTrytesToTrits(powMode, txSiblings.toTrytes());
         int[] normHash = ISS.normalizedBundle(hashTrits);
 
-        hashContainsM = Arrays.stream(normHash).limit(ISS.NUMBER_OF_FRAGMENT_CHUNKS * signatureProvider.getSecurity()).anyMatch(elem -> elem == 13);
+        hashContainsM = Arrays.stream(normHash).limit(ISS.NUMBER_OF_FRAGMENT_CHUNKS * signatureSource.getSecurity()).anyMatch(elem -> elem == 13);
         if (hashContainsM) {
           txSiblings.setAttachmentTimestamp(System.currentTimeMillis());
           txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
@@ -229,7 +229,7 @@ public class MilestoneDatabase extends MilestoneSource {
     }
 
     hashToSign = Hasher.hashTrytes(powMode, txSiblings.toTrytes());
-    String signature = signatureProvider.createSignature(index, hashToSign);
+    String signature = signatureSource.createSignature(index, hashToSign);
     txSiblings.setHash(hashToSign);
 
     chainTransactionsFillSignatures(mwm, txs, signature);
