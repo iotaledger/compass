@@ -24,8 +24,8 @@
  */
 
 import com.google.common.base.Strings;
-import org.iota.compass.InMemorySignatureSource;
-import org.iota.compass.MilestoneDatabase;
+import org.iota.compass.*;
+import org.iota.compass.conf.SignatureSourceServerConfiguration;
 import org.iota.compass.crypto.Hasher;
 import org.iota.compass.crypto.ISS;
 import org.iota.compass.util.AddressGenerator;
@@ -38,8 +38,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 import static jota.pow.SpongeFactory.Mode.*;
@@ -49,18 +51,24 @@ import static jota.pow.SpongeFactory.Mode.*;
  */
 @RunWith(JUnit4.class)
 public class MilestoneTest {
-  private void runForMode(SpongeFactory.Mode powMode, SpongeFactory.Mode sigMode, int security) {
+
+  private SignatureSource getLocalSignatureSource(SpongeFactory.Mode sigMode, int security) {
     final String seed = TestUtil.nextSeed();
-    final InMemorySignatureSource signatureProvider = new InMemorySignatureSource(sigMode, seed, security);
+    return new InMemorySignatureSource(sigMode, seed, security);
+  }
+
+
+  private void runForMode(SpongeFactory.Mode powMode, SignatureSource signatureSource, String seed) {
     final int depth = 4;
     final int MWM = 4;
 
-    final AddressGenerator gen = new AddressGenerator(sigMode, seed, security, depth);
+    final SpongeFactory.Mode sigMode = signatureSource.getSignatureMode();
+    final AddressGenerator gen = new AddressGenerator(sigMode, seed, signatureSource.getSecurity(), depth);
     final List<String> addresses = gen.calculateAllAddresses();
 
     final MerkleTreeCalculator treeCalculator = new MerkleTreeCalculator(sigMode);
     final List<List<String>> layers = treeCalculator.calculateAllLayers(addresses);
-    final MilestoneDatabase db = new MilestoneDatabase(powMode, signatureProvider, layers);
+    final MilestoneDatabase db = new MilestoneDatabase(powMode, signatureSource, layers);
 
     for (int i = 0; i < (1 << depth); i++) {
       final List<Transaction> txs = db.createMilestone(TestUtil.nextSeed(), TestUtil.nextSeed(), i, MWM);
@@ -68,7 +76,10 @@ public class MilestoneTest {
       final Transaction txFirst = txs.get(0);
       final Transaction txSiblings = txs.get(txs.size() - 1);
 
-      txs.forEach(tx -> Assert.assertTrue("Transaction PoW MWM not met", tx.getHash().endsWith(Strings.repeat("9", MWM / 3))));
+      txs.forEach(tx -> System.err.println(Hasher.hashTrytes(powMode, tx.toTrytes())));
+
+      txs.forEach(tx -> Assert.assertTrue("Transaction PoW MWM not met",
+          tx.getHash().endsWith(Strings.repeat("9", MWM / 3))));
       Assert.assertEquals(db.getRoot(), txFirst.getAddress());
       final int[] trunkTrits = ISS.normalizedBundle(Converter.trits(Hasher.hashTrytes(powMode, txSiblings.toTrytes())));
 
@@ -92,6 +103,28 @@ public class MilestoneTest {
   }
 
   @Test
+  public void runRemoteTest() throws IOException {
+    int port = new Random().nextInt(14436) + 51200;
+
+    final String seed = TestUtil.nextSeed();
+
+    SignatureSourceServerConfiguration config = new SignatureSourceServerConfiguration();
+    config.port = port;
+    config.security = 1;
+    config.sigMode = "CURLP27";
+    config.seed = seed;
+
+    SignatureSourceServer server = new SignatureSourceServer(config);
+    server.start();
+
+    SignatureSource source = new RemoteSignatureSource("localhost:" + port);
+
+    runForMode(SpongeFactory.Mode.CURLP81, source, seed);
+
+    server.stop();
+  }
+
+  //@Test
   public void runTests() {
     int from = 1, to = 3;
     SpongeFactory.Mode[] powModes = new SpongeFactory.Mode[]{
@@ -107,11 +140,15 @@ public class MilestoneTest {
         CURLP81
     };
 
+    final String seed = TestUtil.nextSeed();
+
     for (SpongeFactory.Mode powMode : powModes) {
       for (SpongeFactory.Mode sigMode : sigModes) {
         for (int security = from; security <= to; security++) {
+          SignatureSource source = new InMemorySignatureSource(sigMode, seed, security);
+
           System.err.println("Running: " + powMode + " : " + sigMode + " : " + security);
-          runForMode(powMode, sigMode, security);
+          runForMode(powMode, source, seed);
         }
       }
     }

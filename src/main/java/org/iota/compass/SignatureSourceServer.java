@@ -19,7 +19,7 @@ public class SignatureSourceServer {
   private final SignatureSourceServerConfiguration config;
   private final SignatureSource signatureSource;
 
-  private void start() throws IOException {
+  public void start() throws IOException {
     server = ServerBuilder.forPort(config.port)
         .addService(new SignatureSourceImpl(signatureSource))
         .build()
@@ -35,13 +35,13 @@ public class SignatureSourceServer {
     });
   }
 
-  private void stop() {
+  public  void stop() {
     if (server != null) {
       server.shutdown();
     }
   }
 
-  private void blockUntilShutdown() throws InterruptedException {
+  public void blockUntilShutdown() throws InterruptedException {
     if (server != null) {
       server.awaitTermination();
     }

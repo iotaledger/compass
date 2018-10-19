@@ -192,9 +192,12 @@ java_test(
     deps = [
         ":address_generator",
         ":common",
+        ":conf",
         ":inmemory_signature_source",
         ":jota",
         ":merkle_tree_calculator",
+        ":remote_signature_source",
+        ":signature_source_server",
         "@com_google_guava_guava//jar",
         "@junit_junit//jar",
     ],
