@@ -2,6 +2,7 @@
 bazel-*
 bazel-*/
 target/
+.ijwb/
 
 layers/
 addresses.csv

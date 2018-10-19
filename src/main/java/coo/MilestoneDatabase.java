@@ -56,24 +56,20 @@ public class MilestoneDatabase extends MilestoneSource {
   private static final int OFFSET = (ISS.FRAGMENT_LENGTH / 3);
   private static final int LENGTH = (243 + 81 + 81 + 27 + 27 + 27) / 3;
 
-  private final SpongeFactory.Mode sigMode;
   private final SpongeFactory.Mode powMode;
-  private final String seed;
+  private final SignatureSource signatureProvider;
   private final String root;
   private final List<List<String>> layers;
-  private final int security;
 
 
-  public MilestoneDatabase(SpongeFactory.Mode powMode, SpongeFactory.Mode sigMode, String path, String seed, int security) throws IOException {
-    this(powMode, sigMode, loadLayers(path), seed, security);
+  public MilestoneDatabase(SpongeFactory.Mode powMode, SignatureSource signatureProvider, String path) throws IOException {
+    this(powMode, signatureProvider, loadLayers(path));
   }
 
-  public MilestoneDatabase(SpongeFactory.Mode powMode, SpongeFactory.Mode sigMode, List<List<String>> layers, String seed, int security) {
+  public MilestoneDatabase(SpongeFactory.Mode powMode, SignatureSource signatureProvider, List<List<String>> layers) {
     root = layers.get(0).get(0);
     this.layers = layers;
-    this.seed = seed;
-    this.security = security;
-    this.sigMode = sigMode;
+    this.signatureProvider = signatureProvider;
     this.powMode = powMode;
   }
 
@@ -91,9 +87,9 @@ public class MilestoneDatabase extends MilestoneSource {
         });
 
     return IntStream.range(0, result.size())
-            .mapToObj(result::get)
-            .peek(list -> Objects.requireNonNull(list, "Found a missing layer. please check: " + path))
-            .collect(Collectors.toList());
+        .mapToObj(result::get)
+        .peek(list -> Objects.requireNonNull(list, "Found a missing layer. please check: " + path))
+        .collect(Collectors.toList());
   }
 
   /**
@@ -122,11 +118,6 @@ public class MilestoneDatabase extends MilestoneSource {
     }
 
     return siblings;
-  }
-
-  @Override
-  public SpongeFactory.Mode getSignatureMode() {
-    return sigMode;
   }
 
   @Override
@@ -174,8 +165,8 @@ public class MilestoneDatabase extends MilestoneSource {
     Transaction txSiblings = new Transaction();
     txSiblings.setSignatureFragments(siblingsTrytes);
     txSiblings.setAddress(EMPTY_HASH);
-    txSiblings.setCurrentIndex(security);
-    txSiblings.setLastIndex(security);
+    txSiblings.setCurrentIndex(signatureProvider.getSecurity());
+    txSiblings.setLastIndex(signatureProvider.getSecurity());
     txSiblings.setTimestamp(System.currentTimeMillis() / 1000);
     txSiblings.setObsoleteTag(EMPTY_TAG);
     txSiblings.setValue(0);
@@ -187,12 +178,12 @@ public class MilestoneDatabase extends MilestoneSource {
 
     // The other transactions contain a signature that signs the siblings and thereby ensures the integrity.
     List<Transaction> txs =
-        IntStream.range(0, security).mapToObj(i -> {
+        IntStream.range(0, signatureProvider.getSecurity()).mapToObj(i -> {
           Transaction tx = new Transaction();
           tx.setSignatureFragments(Strings.repeat("9", 27 * 81));
           tx.setAddress(root);
           tx.setCurrentIndex(i);
-          tx.setLastIndex(security);
+          tx.setLastIndex(signatureProvider.getSecurity());
           tx.setTimestamp(System.currentTimeMillis() / 1000);
           tx.setObsoleteTag(tag);
           tx.setValue(0);
@@ -214,7 +205,7 @@ public class MilestoneDatabase extends MilestoneSource {
     txs.forEach(tx -> tx.setBundle(bundleHash));
 
     txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
-    if (sigMode == SpongeFactory.Mode.KERL) {
+    if (signatureProvider.getSignatureMode() == SpongeFactory.Mode.KERL) {
       /*
       In the case that the signature is created using KERL, we need to ensure that there exists no 'M'(=13) in the
       normalized fragment that we're signing.
@@ -225,7 +216,7 @@ public class MilestoneDatabase extends MilestoneSource {
         int[] hashTrits = Hasher.hashTrytesToTrits(powMode, txSiblings.toTrytes());
         int[] normHash = ISS.normalizedBundle(hashTrits);
 
-        hashContainsM = Arrays.stream(normHash).limit(ISS.NUMBER_OF_FRAGMENT_CHUNKS * security).anyMatch(elem -> elem == 13);
+        hashContainsM = Arrays.stream(normHash).limit(ISS.NUMBER_OF_FRAGMENT_CHUNKS * signatureProvider.getSecurity()).anyMatch(elem -> elem == 13);
         if (hashContainsM) {
           txSiblings.setAttachmentTimestamp(System.currentTimeMillis());
           txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
@@ -238,7 +229,7 @@ public class MilestoneDatabase extends MilestoneSource {
     }
 
     hashToSign = Hasher.hashTrytes(powMode, txSiblings.toTrytes());
-    String signature = createSignature(sigMode, index, hashToSign);
+    String signature = signatureProvider.createSignature(index, hashToSign);
     txSiblings.setHash(hashToSign);
 
     chainTransactionsFillSignatures(mwm, txs, signature);
@@ -251,46 +242,21 @@ public class MilestoneDatabase extends MilestoneSource {
     Collections.reverse(txs);
 
     txs.stream().skip(1).forEach(tx -> {
-        //copy signature fragment
-        String sigFragment = signature.substring((int) (tx.getCurrentIndex() * SIGNATURE_LENGTH),
-                (int) (tx.getCurrentIndex() + 1) * SIGNATURE_LENGTH);
-        tx.setSignatureFragments(sigFragment);
+      //copy signature fragment
+      String sigFragment = signature.substring((int) (tx.getCurrentIndex() * SIGNATURE_LENGTH),
+          (int) (tx.getCurrentIndex() + 1) * SIGNATURE_LENGTH);
+      tx.setSignatureFragments(sigFragment);
 
-        //chain bundle
-        String prevHash = txs.get((int) (tx.getLastIndex() - tx.getCurrentIndex() - 1)).getHash();
-        tx.setTrunkTransaction(prevHash);
+      //chain bundle
+      String prevHash = txs.get((int) (tx.getLastIndex() - tx.getCurrentIndex() - 1)).getHash();
+      tx.setTrunkTransaction(prevHash);
 
-        //perform PoW
-        tx.setNonce(getPoWProvider().performPoW(tx.toTrytes(), mwm).substring(NONCE_OFFSET));
-        tx.setHash(Hasher.hashTrytes(powMode, tx.toTrytes()));
+      //perform PoW
+      tx.setNonce(getPoWProvider().performPoW(tx.toTrytes(), mwm).substring(NONCE_OFFSET));
+      tx.setHash(Hasher.hashTrytes(powMode, tx.toTrytes()));
     });
 
     Collections.reverse(txs);
-  }
-
-  /**
-   * @param mode       sponge mode to use for signature creation
-   * @param index      key / tree leaf index to generate signature for
-   * @param hashToSign the hash to be signed
-   * @return
-   */
-  private String createSignature(SpongeFactory.Mode mode, int index, String hashToSign) {
-    int[] hashTrits = Converter.trits(hashToSign);
-    int[] normalizedBundle = ISS.normalizedBundle(hashTrits);
-
-    int[] subseed = ISS.subseed(mode, Converter.trits(seed), index);
-    int[] key = ISS.key(mode, subseed, security);
-
-    StringBuilder fragment = new StringBuilder();
-
-    for (int i = 0; i < security; i++) {
-      int[] curFrag = ISS.signatureFragment(mode,
-          Arrays.copyOfRange(normalizedBundle, i * ISS.NUMBER_OF_FRAGMENT_CHUNKS, (i + 1) * ISS.NUMBER_OF_FRAGMENT_CHUNKS),
-          Arrays.copyOfRange(key, i * ISS.FRAGMENT_LENGTH, (i + 1) * ISS.FRAGMENT_LENGTH));
-      fragment.append(Converter.trytes(curFrag));
-    }
-
-    return fragment.toString();
   }
 
   private String calculateBundleHash(List<Transaction> txs) {

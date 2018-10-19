@@ -42,11 +42,6 @@ public abstract class MilestoneSource {
   public abstract String getRoot();
 
   /**
-   * @return the sponge mode used by this `MilestoneSource` for creating signatures
-   */
-  public abstract SpongeFactory.Mode getSignatureMode();
-
-  /**
    * @return the sponge mode used by this `MilestoneSource` for performing proof of work
    */
   public abstract SpongeFactory.Mode getPoWMode();

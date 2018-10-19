@@ -59,8 +59,10 @@ public class Coordinator {
     this.config = config;
     this.node = new URL(config.host);
 
+    final SignatureSource signatureProvider = new InMemorySignatureSource(SpongeFactory.Mode.valueOf(config.sigMode),
+        config.seed, config.security);
     this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.powMode),
-            SpongeFactory.Mode.valueOf(config.sigMode), config.layersPath, config.seed, config.security);
+        signatureProvider, config.layersPath);
     this.api = new IotaAPI.Builder()
         .protocol(this.node.getProtocol())
         .host(this.node.getHost())

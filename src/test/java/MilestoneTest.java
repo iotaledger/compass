@@ -24,6 +24,7 @@
  */
 
 import com.google.common.base.Strings;
+import coo.InMemorySignatureSource;
 import coo.MilestoneDatabase;
 import coo.crypto.Hasher;
 import coo.crypto.ISS;
@@ -50,6 +51,7 @@ import static jota.pow.SpongeFactory.Mode.*;
 public class MilestoneTest {
   private void runForMode(SpongeFactory.Mode powMode, SpongeFactory.Mode sigMode, int security) {
     final String seed = TestUtil.nextSeed();
+    final InMemorySignatureSource signatureProvider = new InMemorySignatureSource(sigMode, seed, security);
     final int depth = 4;
     final int MWM = 4;
 
@@ -58,7 +60,7 @@ public class MilestoneTest {
 
     final MerkleTreeCalculator treeCalculator = new MerkleTreeCalculator(sigMode);
     final List<List<String>> layers = treeCalculator.calculateAllLayers(addresses);
-    final MilestoneDatabase db = new MilestoneDatabase(powMode, sigMode, layers, seed, security);
+    final MilestoneDatabase db = new MilestoneDatabase(powMode, signatureProvider, layers);
 
     for (int i = 0; i < (1 << depth); i++) {
       final List<Transaction> txs = db.createMilestone(TestUtil.nextSeed(), TestUtil.nextSeed(), i, MWM);

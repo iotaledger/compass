@@ -23,6 +23,7 @@ java_library(
             "crypto/ISSInPlace.java",
             "MilestoneSource.java",
             "MilestoneDatabase.java",
+            "SignatureSource.java",
             "KerlPoW.java",
         ]
     ],
@@ -31,6 +32,15 @@ java_library(
         "@com_google_guava_guava//jar",
         "@org_bouncycastle_bcprov_jdk15on//jar",
         "@org_slf4j_slf4j_api//jar",
+    ],
+)
+
+java_library(
+    name = "inmemory_signature_source",
+    srcs = [MAIN_BASE_PATH % "InMemorySignatureSource.java"],
+    deps = [
+        ":common",
+        ":jota",
     ],
 )
 
@@ -92,6 +102,7 @@ java_binary(
     deps = [
         ":common",
         ":conf",
+        ":inmemory_signature_source",
         ":jota",
         "@com_beust_jcommander//jar",
         "@org_apache_commons_commons_lang3//jar",
@@ -108,6 +119,7 @@ java_binary(
     deps = [
         ":common",
         ":conf",
+        ":inmemory_signature_source",
         ":jota",
         "@com_beust_jcommander//jar",
         "@org_slf4j_slf4j_api//jar",
@@ -121,6 +133,7 @@ java_test(
     deps = [
         ":address_generator",
         ":common",
+        ":inmemory_signature_source",
         ":jota",
         ":merkle_tree_calculator",
         "@com_google_guava_guava//jar",

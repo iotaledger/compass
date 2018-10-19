@@ -26,8 +26,10 @@
 package coo.shadow;
 
 import com.beust.jcommander.JCommander;
+import coo.InMemorySignatureSource;
 import coo.MilestoneDatabase;
 import coo.MilestoneSource;
+import coo.SignatureSource;
 import coo.conf.ShadowingConfiguration;
 import coo.crypto.Hasher;
 import jota.IotaAPI;
@@ -68,8 +70,10 @@ public class ShadowingCoordinator {
   public ShadowingCoordinator(ShadowingConfiguration config) throws IOException {
     this.config = config;
 
+    final SignatureSource signatureProvider = new InMemorySignatureSource(SpongeFactory.Mode.valueOf(config.sigMode),
+        config.seed, config.security);
     this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.powMode),
-        SpongeFactory.Mode.valueOf(config.sigMode), config.layersPath, config.seed, config.security);
+        signatureProvider, config.layersPath);
     this.node = new URL(config.host);
     this.api = new IotaAPI.Builder()
         .protocol(this.node.getProtocol())
