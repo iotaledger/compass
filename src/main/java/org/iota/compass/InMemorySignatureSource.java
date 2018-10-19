@@ -1,7 +1,7 @@
-package coo;
+package org.iota.compass;
 
 
-import coo.crypto.ISS;
+import org.iota.compass.crypto.ISS;
 import jota.pow.SpongeFactory;
 import jota.utils.Converter;
 

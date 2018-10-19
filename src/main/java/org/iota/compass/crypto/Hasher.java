@@ -23,28 +23,35 @@
  *     https://www.iota.org/
  */
 
-package coo;
+package org.iota.compass.crypto;
 
-import com.google.common.base.Strings;
-import jota.model.Transaction;
+import jota.pow.ICurl;
+import jota.pow.JCurl;
 import jota.pow.SpongeFactory;
+import jota.utils.Converter;
 
-import java.util.List;
-
-public abstract class MilestoneSource {
-  public final static String EMPTY_HASH = Strings.repeat("9", 81);
-  public final static String EMPTY_TAG = Strings.repeat("9", 27);
-  public final static String EMPTY_MSG = Strings.repeat("9", 27 * 81);
-
+/**
+ *
+ */
+public class Hasher {
   /**
-   * @return the merkle tree root backed by this `MilestoneSource`
+   * Hashes a provided Tryte string using the given method
+   *
+   * @param mode the sponge method to use
+   * @param trytes
+   * @return 81 tryte hash
    */
-  public abstract String getRoot();
+  public static String hashTrytes(SpongeFactory.Mode mode, String trytes) {
+    return Converter.trytes(hashTrytesToTrits(mode, trytes));
+  }
 
-  /**
-   * @return the sponge mode used by this `MilestoneSource` for performing proof of work
-   */
-  public abstract SpongeFactory.Mode getPoWMode();
+  public static int[] hashTrytesToTrits(SpongeFactory.Mode mode, String trytes) {
+    int[] hash = new int[JCurl.HASH_LENGTH];
 
-  public abstract List<Transaction> createMilestone(String trunk, String branch, int index, int mwm);
+    ICurl sponge = SpongeFactory.create(mode);
+    sponge.absorb(Converter.trits(trytes));
+    sponge.squeeze(hash);
+
+    return hash;
+  }
 }

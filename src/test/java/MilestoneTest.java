@@ -24,12 +24,12 @@
  */
 
 import com.google.common.base.Strings;
-import coo.InMemorySignatureSource;
-import coo.MilestoneDatabase;
-import coo.crypto.Hasher;
-import coo.crypto.ISS;
-import coo.util.AddressGenerator;
-import coo.util.MerkleTreeCalculator;
+import org.iota.compass.InMemorySignatureSource;
+import org.iota.compass.MilestoneDatabase;
+import org.iota.compass.crypto.Hasher;
+import org.iota.compass.crypto.ISS;
+import org.iota.compass.util.AddressGenerator;
+import org.iota.compass.util.MerkleTreeCalculator;
 import jota.model.Transaction;
 import jota.pow.SpongeFactory;
 import jota.utils.Converter;

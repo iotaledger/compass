@@ -1,4 +1,4 @@
-MAIN_BASE_PATH = "src/main/java/coo/%s"
+MAIN_BASE_PATH = "src/main/java/org/iota/compass/%s"
 
 java_import(
     name = "jota",

@@ -23,10 +23,10 @@
  *     https://www.iota.org/
  */
 
-package coo;
+package org.iota.compass;
 
 import com.beust.jcommander.JCommander;
-import coo.conf.Configuration;
+import org.iota.compass.conf.Configuration;
 import jota.IotaAPI;
 import jota.dto.response.GetNodeInfoResponse;
 import jota.dto.response.GetTransactionsToApproveResponse;

@@ -23,7 +23,7 @@
  *     https://www.iota.org/
  */
 
-package coo.crypto;
+package org.iota.compass.crypto;
 
 import jota.pow.ICurl;
 import jota.pow.JCurl;

@@ -23,7 +23,7 @@
  *     https://www.iota.org/
  */
 
-package coo.conf;
+package org.iota.compass.conf;
 
 import com.beust.jcommander.Parameter;
 

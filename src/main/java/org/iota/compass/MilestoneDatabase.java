@@ -23,12 +23,12 @@
  *     https://www.iota.org/
  */
 
-package coo;
+package org.iota.compass;
 
 import cfb.pearldiver.PearlDiverLocalPoW;
 import com.google.common.base.Strings;
-import coo.crypto.Hasher;
-import coo.crypto.ISS;
+import org.iota.compass.crypto.Hasher;
+import org.iota.compass.crypto.ISS;
 import jota.IotaLocalPoW;
 import jota.model.Transaction;
 import jota.pow.ICurl;

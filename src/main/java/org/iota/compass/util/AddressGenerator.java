@@ -23,9 +23,9 @@
  *     https://www.iota.org/
  */
 
-package coo.util;
+package org.iota.compass.util;
 
-import coo.crypto.ISSInPlace;
+import org.iota.compass.crypto.ISSInPlace;
 import jota.pow.JCurl;
 import jota.pow.SpongeFactory;
 import jota.utils.Converter;

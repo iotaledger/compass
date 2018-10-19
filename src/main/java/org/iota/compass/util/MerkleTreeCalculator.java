@@ -23,7 +23,7 @@
  *     https://www.iota.org/
  */
 
-package coo.util;
+package org.iota.compass.util;
 
 import com.google.common.math.IntMath;
 import jota.pow.ICurl;

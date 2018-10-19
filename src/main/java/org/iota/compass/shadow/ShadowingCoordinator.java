@@ -23,15 +23,15 @@
  *     https://www.iota.org/
  */
 
-package coo.shadow;
+package org.iota.compass.shadow;
 
 import com.beust.jcommander.JCommander;
-import coo.InMemorySignatureSource;
-import coo.MilestoneDatabase;
-import coo.MilestoneSource;
-import coo.SignatureSource;
-import coo.conf.ShadowingConfiguration;
-import coo.crypto.Hasher;
+import org.iota.compass.InMemorySignatureSource;
+import org.iota.compass.MilestoneDatabase;
+import org.iota.compass.MilestoneSource;
+import org.iota.compass.SignatureSource;
+import org.iota.compass.conf.ShadowingConfiguration;
+import org.iota.compass.crypto.Hasher;
 import jota.IotaAPI;
 import jota.dto.response.GetNodeInfoResponse;
 import jota.dto.response.GetTransactionsToApproveResponse;
