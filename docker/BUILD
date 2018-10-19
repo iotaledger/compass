@@ -31,3 +31,11 @@ container_image(
     files = ["//:shadowing_coordinator_deploy.jar"],
     repository = "iota/compass",
 )
+
+container_image(
+    name = "signature_source_server",
+    base = "@java_base//image",
+    cmd = ["signature_source_server_deploy.jar"],
+    files = ["//:signature_source_server_deploy.jar"],
+    repository = "iota/compass",
+)

@@ -81,6 +81,7 @@ public class RemoteSignatureSource extends SignatureSource {
 
   @Override
   protected int[] getKey(long index) {
+    log.trace("Requesting key for index: " + index);
     GetKeyResponse response = serviceStub.getKey(GetKeyRequest.newBuilder().setIndex(index).build());
 
     return Converter.trits(response.getKey());
@@ -88,10 +89,14 @@ public class RemoteSignatureSource extends SignatureSource {
 
   @Override
   public int getSecurity() {
-    if (cachedSecurity.isPresent()) return cachedSecurity.get();
+    if (cachedSecurity.isPresent())
+      return cachedSecurity.get();
+
 
     GetSecurityResponse response = serviceStub.getSecurity(GetSecurityRequest.getDefaultInstance());
     cachedSecurity = Optional.of(response.getSecurity());
+
+    log.info("Caching security level: " + response.getSecurity());
 
     return response.getSecurity();
   }
@@ -118,6 +123,8 @@ public class RemoteSignatureSource extends SignatureSource {
     }
 
     cachedSignatureMode = Optional.of(spongeMode);
+
+    log.info("Caching signature mode: " + spongeMode);
 
     return spongeMode;
   }

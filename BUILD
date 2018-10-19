@@ -75,6 +75,7 @@ java_library(
         for x in [
             "conf/InMemorySignatureSourceConfiguration.java",
             "conf/RemoteSignatureSourceConfiguration.java",
+            "conf/SignatureSourceServerConfiguration.java",
             "conf/BaseConfiguration.java",
             "conf/Configuration.java",
             "conf/ShadowingConfiguration.java",
@@ -85,6 +86,35 @@ java_library(
         ":common",
         ":jota",
         "@com_beust_jcommander//jar",
+    ],
+)
+
+java_binary(
+    name = "signature_source_server",
+    srcs = [MAIN_BASE_PATH % "SignatureSourceServer.java"],
+    main_class = "org.iota.compass.SignatureSourceServer",
+    visibility = ["//visibility:public"],
+    runtime_deps = ["@org_slf4j_slf4j_simple//jar"],
+    deps = [
+        ":common",
+        ":conf",
+        ":inmemory_signature_source",
+        ":jota",
+        "//proto:signature_source_java_grpc",
+        "//proto:signature_source_java_proto",
+        "@com_beust_jcommander//jar",
+        "@com_google_api_grpc_proto_google_common_protos//jar",
+        "@com_google_code_findbugs_jsr305//jar",
+        "@com_google_guava_guava//jar",
+        "@com_google_protobuf//:protobuf_java",
+        "@com_google_protobuf//:protobuf_java_util",
+        "@io_grpc_grpc_java//alts",
+        "@io_grpc_grpc_java//core",
+        "@io_grpc_grpc_java//netty",
+        "@io_grpc_grpc_java//protobuf",
+        "@io_grpc_grpc_java//stub",
+        "@io_netty_netty_handler//jar",
+        "@org_slf4j_slf4j_api//jar",
     ],
 )
 
