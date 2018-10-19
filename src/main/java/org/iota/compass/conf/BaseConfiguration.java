@@ -43,6 +43,6 @@ public class BaseConfiguration {
   @Parameter(names = "-powMode", description = "Sponge mode to use for Proof of Work (one of CURLP81, KERL)", required = true, validateWith = {POWModeValidator.class})
   public String powMode = "CURLP81";
 
-  @Parameter(names = "-signatureSource", description = "Signature source type (can be 'inmemory' or 'local')", required = true)
+  @Parameter(names = "-signatureSource", description = "Signature source type (can be 'inmemory' or 'local')")
   public String signatureSource = "inmemory";
 }
