@@ -112,6 +112,7 @@ public class MilestoneTest {
     config.port = port;
     config.security = 1;
     config.sigMode = "CURLP27";
+    config.plaintext = true;
     config.seed = seed;
 
     SignatureSourceServer server = new SignatureSourceServer(config);
@@ -124,7 +125,7 @@ public class MilestoneTest {
     server.stop();
   }
 
-  //@Test
+  @Test
   public void runTests() {
     int from = 1, to = 3;
     SpongeFactory.Mode[] powModes = new SpongeFactory.Mode[]{

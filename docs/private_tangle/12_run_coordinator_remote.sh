@@ -11,5 +11,5 @@ docker run -t --net host --rm -v `pwd`/data:/data iota/compass/docker:coordinato
 	-host $host \
 	-signatureSource remote \
 	-signatureSourceURI localhost:50051 \
-	-signatureSourcePlaintext true \
+	-signatureSourcePlaintext \
 	"$@"

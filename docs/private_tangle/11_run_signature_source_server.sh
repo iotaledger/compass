@@ -7,5 +7,6 @@ docker run -t --net host --rm -v `pwd`/data:/data iota/compass/docker:signature_
 	-sigMode $sigMode \
 	-security $security \
 	-seed $seed \
+	-plaintext \
 	-port 50051 \
 	"$@"

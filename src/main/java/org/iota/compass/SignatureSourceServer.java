@@ -2,8 +2,12 @@ package org.iota.compass;
 
 import com.beust.jcommander.JCommander;
 import io.grpc.Server;
-import io.grpc.ServerBuilder;
+import io.grpc.netty.GrpcSslContexts;
+import io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
 import jota.pow.SpongeFactory;
 import jota.utils.Converter;
 import org.iota.compass.conf.SignatureSourceServerConfiguration;
@@ -11,6 +15,7 @@ import org.iota.compass.proto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 
 public class SignatureSourceServer {
@@ -18,35 +23,6 @@ public class SignatureSourceServer {
 
   private final SignatureSourceServerConfiguration config;
   private final SignatureSource signatureSource;
-
-  public void start() throws IOException {
-    server = ServerBuilder.forPort(config.port)
-        .addService(new SignatureSourceImpl(signatureSource))
-        .build()
-        .start();
-    log.info("Server started, listening on " + config.port);
-    Runtime.getRuntime().addShutdownHook(new Thread() {
-      @Override
-      public void run() {
-        System.err.println("*** shutting down gRPC server since JVM is shutting down");
-        SignatureSourceServer.this.stop();
-        System.err.println("*** server shut down");
-      }
-    });
-  }
-
-  public  void stop() {
-    if (server != null) {
-      server.shutdown();
-    }
-  }
-
-  public void blockUntilShutdown() throws InterruptedException {
-    if (server != null) {
-      server.awaitTermination();
-    }
-  }
-
 
   private Server server;
 
@@ -64,6 +40,56 @@ public class SignatureSourceServer {
     server.start();
     server.blockUntilShutdown();
   }
+
+  public void start() throws IOException {
+    NettyServerBuilder builder =
+        NettyServerBuilder.forPort(config.port)
+            .addService(new SignatureSourceImpl(signatureSource));
+
+    if (!config.plaintext) {
+      if (config.certChain == null || config.certChain.isEmpty()) {
+        throw new IllegalArgumentException("-certChain is required if not running in plaintext mode");
+      }
+
+      if (config.privateKey == null || config.privateKey.isEmpty()) {
+        throw new IllegalArgumentException("-privateKey is required if not running in plaintext mode");
+      }
+
+      SslContextBuilder sslClientContextBuilder = SslContextBuilder.forServer(new File(config.certChain),
+          new File(config.privateKey));
+      if (config.trustCertCollection != null) {
+        sslClientContextBuilder.trustManager(new File(config.trustCertCollection));
+        sslClientContextBuilder.clientAuth(ClientAuth.REQUIRE);
+      }
+
+      builder = builder.sslContext(GrpcSslContexts.configure(sslClientContextBuilder,
+          SslProvider.OPENSSL).build());
+    }
+
+    server = builder.build();
+    server.start();
+
+    log.info("Server started, listening on " + config.port);
+
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      System.err.println("*** shutting down gRPC server since JVM is shutting down");
+      SignatureSourceServer.this.stop();
+      System.err.println("*** server shut down");
+    }));
+  }
+
+  public void stop() {
+    if (server != null) {
+      server.shutdown();
+    }
+  }
+
+  public void blockUntilShutdown() throws InterruptedException {
+    if (server != null) {
+      server.awaitTermination();
+    }
+  }
+
 
   static class SignatureSourceImpl extends SignatureSourceGrpc.SignatureSourceImplBase {
     private final SignatureSource signatureSource;

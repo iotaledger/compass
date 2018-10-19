@@ -31,7 +31,7 @@ public class RemoteSignatureSourceConfiguration {
   @Parameter(names = "-signatureSourceURI", description = "URI for remote signature source", required = true)
   public String uri;
 
-  @Parameter(names = "-signatureSourcePlaintext", description = "Whether to communicate with signatureSource in plaintext", required = true)
+  @Parameter(names = "-signatureSourcePlaintext", description = "Whether to communicate with signatureSource in plaintext")
   public boolean plaintext = false;
 
   @Parameter(names = "-signatureSourceTrustCertCollection", description = "Path to trust cert collection for encrypted connection to remote signature source server")
