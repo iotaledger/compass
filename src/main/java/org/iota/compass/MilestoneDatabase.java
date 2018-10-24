@@ -27,14 +27,14 @@ package org.iota.compass;
 
 import cfb.pearldiver.PearlDiverLocalPoW;
 import com.google.common.base.Strings;
-import org.iota.compass.crypto.Hasher;
-import org.iota.compass.crypto.ISS;
 import jota.IotaLocalPoW;
 import jota.model.Transaction;
 import jota.pow.ICurl;
 import jota.pow.JCurl;
 import jota.pow.SpongeFactory;
 import jota.utils.Converter;
+import org.iota.compass.crypto.Hasher;
+import org.iota.compass.crypto.ISS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -229,7 +229,7 @@ public class MilestoneDatabase extends MilestoneSource {
     }
 
     hashToSign = Hasher.hashTrytes(powMode, txSiblings.toTrytes());
-    String signature = signatureSource.createSignature(index, hashToSign);
+    String signature = signatureSource.getSignature(index, hashToSign);
     txSiblings.setHash(hashToSign);
 
     chainTransactionsFillSignatures(mwm, txs, signature);

@@ -8,8 +8,6 @@ import io.grpc.stub.StreamObserver;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
-import jota.pow.SpongeFactory;
-import jota.utils.Converter;
 import org.iota.compass.conf.SignatureSourceServerConfiguration;
 import org.iota.compass.proto.*;
 import org.slf4j.Logger;
@@ -137,13 +135,14 @@ public class SignatureSourceServer {
     }
 
     @Override
-    public void getKey(GetKeyRequest request, StreamObserver<GetKeyResponse> responseObserver) {
-      log.info("Responding to getKey for index: " + request.getIndex());
+    public void getSignature(GetSignatureRequest request, StreamObserver<GetSignatureResponse> responseObserver) {
+      log.info("Responding to getSignature for index: " + request.getIndex() + " and bundle hash: " + request.getBundleHash());
 
-      responseObserver.onNext(GetKeyResponse.newBuilder()
-          .setKey(Converter.trytes(signatureSource.getKey(request.getIndex())))
+      responseObserver.onNext(GetSignatureResponse.newBuilder()
+          .setSignature(signatureSource.getSignature(request.getIndex(), request.getBundleHash()))
           .build());
       responseObserver.onCompleted();
+      super.getSignature(request, responseObserver);
     }
   }
 

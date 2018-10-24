@@ -12,13 +12,13 @@ enum SignatureMode {
     KERL = 2;
 }
 
-message GetKeyRequest {
+message GetSignatureRequest {
   uint64 index = 1;
+  string bundleHash = 2;
 }
 
-message GetKeyResponse {
-  uint64 index = 1;
-  string key = 2;
+message GetSignatureResponse {
+  string signature = 1;
 }
 
 message GetSecurityRequest {}
@@ -37,5 +37,5 @@ message GetSignatureModeResponse {
 service SignatureSource {
   rpc GetSecurity(GetSecurityRequest) returns(GetSecurityResponse);
   rpc GetSignatureMode(GetSignatureModeRequest) returns(GetSignatureModeResponse);
-  rpc GetKey(GetKeyRequest) returns(GetKeyResponse);
+  rpc GetSignature(GetSignatureRequest) returns(GetSignatureResponse);
 }

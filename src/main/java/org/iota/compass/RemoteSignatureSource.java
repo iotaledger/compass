@@ -7,7 +7,6 @@ import io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import jota.pow.SpongeFactory;
-import jota.utils.Converter;
 import org.iota.compass.proto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,22 +26,6 @@ public class RemoteSignatureSource extends SignatureSource {
 
   private Optional<Integer> cachedSecurity = Optional.empty();
   private Optional<SpongeFactory.Mode> cachedSignatureMode = Optional.empty();
-
-  private static SslContext buildSslContext(
-      String trustCertCollectionFilePath,
-      String clientCertChainFilePath,
-      String clientPrivateKeyFilePath) throws SSLException {
-    SslContextBuilder builder = GrpcSslContexts.forClient();
-    if (trustCertCollectionFilePath != null) {
-      builder.trustManager(new File(trustCertCollectionFilePath));
-    }
-    if (clientCertChainFilePath != null && !clientCertChainFilePath.isEmpty()
-        && clientPrivateKeyFilePath != null && !clientPrivateKeyFilePath.isEmpty()) {
-      builder.keyManager(new File(clientCertChainFilePath), new File(clientPrivateKeyFilePath));
-    }
-    return builder.build();
-  }
-
 
   /**
    * Constructs a RemoteSignatureSource using an encrypted gRPC channel.
@@ -65,6 +48,7 @@ public class RemoteSignatureSource extends SignatureSource {
         .build());
   }
 
+
   /**
    * Constructs a RemoteSignatureSource using an *unencrypted* gRPC channel.
    *
@@ -79,12 +63,29 @@ public class RemoteSignatureSource extends SignatureSource {
     this.serviceStub = SignatureSourceGrpc.newBlockingStub(channel);
   }
 
-  @Override
-  protected int[] getKey(long index) {
-    log.trace("Requesting key for index: " + index);
-    GetKeyResponse response = serviceStub.getKey(GetKeyRequest.newBuilder().setIndex(index).build());
+  private static SslContext buildSslContext(
+      String trustCertCollectionFilePath,
+      String clientCertChainFilePath,
+      String clientPrivateKeyFilePath) throws SSLException {
+    SslContextBuilder builder = GrpcSslContexts.forClient();
+    if (trustCertCollectionFilePath != null) {
+      builder.trustManager(new File(trustCertCollectionFilePath));
+    }
+    if (clientCertChainFilePath != null && !clientCertChainFilePath.isEmpty()
+        && clientPrivateKeyFilePath != null && !clientPrivateKeyFilePath.isEmpty()) {
+      builder.keyManager(new File(clientCertChainFilePath), new File(clientPrivateKeyFilePath));
+    }
+    return builder.build();
+  }
 
-    return Converter.trits(response.getKey());
+  @Override
+  public String getSignature(long index, String bundleHash) {
+    log.trace("Requesting signature for index: " + index + " and bundle hash: " + bundleHash);
+
+    GetSignatureResponse response = serviceStub.getSignature(GetSignatureRequest.newBuilder().setIndex(index).setBundleHash(bundleHash).build());
+
+
+    return response.getSignature();
   }
 
   @Override
