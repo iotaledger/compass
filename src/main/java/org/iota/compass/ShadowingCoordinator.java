@@ -23,7 +23,7 @@
  *     https://www.iota.org/
  */
 
-package org.iota.compass.shadow;
+package org.iota.compass;
 
 import com.beust.jcommander.JCommander;
 import jota.IotaAPI;
@@ -32,11 +32,7 @@ import jota.dto.response.GetTransactionsToApproveResponse;
 import jota.error.ArgumentException;
 import jota.model.Transaction;
 import org.apache.commons.lang3.NotImplementedException;
-import org.iota.compass.Coordinator;
-import org.iota.compass.MilestoneDatabase;
-import org.iota.compass.MilestoneSource;
-import org.iota.compass.SignatureSource;
-import org.iota.compass.conf.ShadowingConfiguration;
+import org.iota.compass.conf.ShadowingCoordinatorConfiguration;
 import org.iota.compass.crypto.Hasher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,13 +56,13 @@ import java.util.stream.Collectors;
 public class ShadowingCoordinator {
   private final Logger log = LoggerFactory.getLogger(getClass());
 
-  private final ShadowingConfiguration config;
+  private final ShadowingCoordinatorConfiguration config;
   private final IotaAPI api;
   private final URL node;
   private final MilestoneSource db;
   private List<OldMilestone> oldMilestones;
 
-  public ShadowingCoordinator(ShadowingConfiguration config, SignatureSource signatureSource) throws IOException {
+  public ShadowingCoordinator(ShadowingCoordinatorConfiguration config, SignatureSource signatureSource) throws IOException {
     this.config = config;
 
     this.db = new MilestoneDatabase(config.powMode,
@@ -80,13 +76,13 @@ public class ShadowingCoordinator {
   }
 
   public static void main(String[] args) throws Exception {
-    ShadowingConfiguration config = new ShadowingConfiguration();
+    ShadowingCoordinatorConfiguration config = new ShadowingCoordinatorConfiguration();
     JCommander.newBuilder()
         .addObject(config)
         .build()
         .parse(args);
 
-    ShadowingCoordinator coo = new ShadowingCoordinator(config, Coordinator.signatureSourceFromArgs(config.signatureSource, args));
+    ShadowingCoordinator coo = new ShadowingCoordinator(config, SignatureSourceHelper.signatureSourceFromArgs(config.signatureSource, args));
     coo.setup();
     coo.start();
   }

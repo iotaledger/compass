@@ -3,7 +3,6 @@ package org.iota.compass;
 import jota.pow.SpongeFactory;
 
 public abstract class SignatureSource {
-
   /**
    * Provides the signature for the given milestone index.
    *

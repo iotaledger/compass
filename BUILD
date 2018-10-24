@@ -23,12 +23,12 @@ java_library(
             "crypto/ISSInPlace.java",
             "MilestoneSource.java",
             "MilestoneDatabase.java",
-            "SignatureSource.java",
             "KerlPoW.java",
         ]
     ],
     deps = [
         ":jota",
+        ":signature_source_common",
         "@com_google_guava_guava//jar",
         "@org_bouncycastle_bcprov_jdk15on//jar",
         "@org_slf4j_slf4j_api//jar",
@@ -36,21 +36,23 @@ java_library(
 )
 
 java_library(
-    name = "inmemory_signature_source",
+    name = "signature_source_inmemory",
     srcs = [MAIN_BASE_PATH % "InMemorySignatureSource.java"],
     deps = [
         ":common",
         ":jota",
+        ":signature_source_common",
         "@org_slf4j_slf4j_api//jar",
     ],
 )
 
 java_library(
-    name = "remote_signature_source",
+    name = "signature_source_remote",
     srcs = [MAIN_BASE_PATH % "RemoteSignatureSource.java"],
     deps = [
         ":common",
         ":jota",
+        ":signature_source_common",
         "//proto:signature_source_java_grpc",
         "//proto:signature_source_java_proto",
         "@com_google_api_grpc_proto_google_common_protos//jar",
@@ -69,6 +71,31 @@ java_library(
 )
 
 java_library(
+    name = "signature_source_common",
+    srcs = [(MAIN_BASE_PATH % x) for x in [
+        "SignatureSource.java",
+        "SignatureSourceType.java",
+    ]],
+    deps = [
+        ":jota",
+    ],
+)
+
+java_library(
+    name = "signature_source_helper",
+    srcs = [(MAIN_BASE_PATH % x) for x in [
+        "SignatureSourceHelper.java",
+    ]],
+    deps = [
+        ":conf",
+        ":signature_source_common",
+        ":signature_source_inmemory",
+        ":signature_source_remote",
+        "@com_beust_jcommander//jar",
+    ],
+)
+
+java_library(
     name = "conf",
     srcs = [
         (MAIN_BASE_PATH % x)
@@ -77,15 +104,18 @@ java_library(
             "conf/RemoteSignatureSourceConfiguration.java",
             "conf/SignatureSourceServerConfiguration.java",
             "conf/BaseConfiguration.java",
-            "conf/Configuration.java",
+            "conf/CoordinatorConfiguration.java",
             "conf/SpongeModeConverter.java",
-            "conf/ShadowingConfiguration.java",
+            "conf/SignatureSourceTypeConverter.java",
+            "conf/AddressGeneratorConfiguration.java",
+            "conf/ShadowingCoordinatorConfiguration.java",
             "conf/POWModeValidator.java",
         ]
     ],
     deps = [
         ":common",
         ":jota",
+        ":signature_source_common",
         "@com_beust_jcommander//jar",
     ],
 )
@@ -99,8 +129,9 @@ java_binary(
     deps = [
         ":common",
         ":conf",
-        ":inmemory_signature_source",
         ":jota",
+        ":signature_source_common",
+        ":signature_source_inmemory",
         "//proto:signature_source_java_grpc",
         "//proto:signature_source_java_proto",
         "@com_beust_jcommander//jar",
@@ -152,17 +183,16 @@ COORDINATOR_RUNTIME_DEPS = [
 
 java_binary(
     name = "shadowing_coordinator",
-    srcs = [MAIN_BASE_PATH % "shadow/ShadowingCoordinator.java"],
-    main_class = "org.iota.compass.shadow.ShadowingCoordinator",
+    srcs = [MAIN_BASE_PATH % "ShadowingCoordinator.java"],
+    main_class = "org.iota.compass.ShadowingCoordinator",
     visibility = ["//visibility:public"],
     runtime_deps = COORDINATOR_RUNTIME_DEPS,
     deps = [
         ":common",
         ":conf",
-        ":coordinator",
-        ":inmemory_signature_source",
         ":jota",
-        ":remote_signature_source",
+        ":signature_source_common",
+        ":signature_source_helper",
         "@com_beust_jcommander//jar",
         "@org_apache_commons_commons_lang3//jar",
         "@org_slf4j_slf4j_api//jar",
@@ -178,9 +208,9 @@ java_binary(
     deps = [
         ":common",
         ":conf",
-        ":inmemory_signature_source",
         ":jota",
-        ":remote_signature_source",
+        ":signature_source_common",
+        ":signature_source_helper",
         "@com_beust_jcommander//jar",
         "@org_slf4j_slf4j_api//jar",
     ],
@@ -195,10 +225,11 @@ java_test(
         ":address_generator",
         ":common",
         ":conf",
-        ":inmemory_signature_source",
         ":jota",
         ":merkle_tree_calculator",
-        ":remote_signature_source",
+        ":signature_source_common",
+        ":signature_source_inmemory",
+        ":signature_source_remote",
         ":signature_source_server",
         "@com_google_guava_guava//jar",
         "@junit_junit//jar",

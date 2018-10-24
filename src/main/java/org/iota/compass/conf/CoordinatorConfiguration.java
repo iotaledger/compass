@@ -27,7 +27,7 @@ package org.iota.compass.conf;
 
 import com.beust.jcommander.Parameter;
 
-public class Configuration extends BaseConfiguration {
+public class CoordinatorConfiguration extends BaseConfiguration {
   @Parameter(names = "-bootstrap", description = "Bootstrap network")
   public boolean bootstrap = false;
 

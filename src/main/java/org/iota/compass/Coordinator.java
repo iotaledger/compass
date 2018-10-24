@@ -26,13 +26,12 @@
 package org.iota.compass;
 
 import com.beust.jcommander.JCommander;
-import org.iota.compass.conf.Configuration;
+import org.iota.compass.conf.CoordinatorConfiguration;
 import jota.IotaAPI;
 import jota.dto.response.GetNodeInfoResponse;
 import jota.dto.response.GetTransactionsToApproveResponse;
 import jota.error.ArgumentException;
 import jota.model.Transaction;
-import jota.pow.SpongeFactory;
 import org.iota.compass.conf.InMemorySignatureSourceConfiguration;
 import org.iota.compass.conf.RemoteSignatureSourceConfiguration;
 import org.slf4j.Logger;
@@ -48,7 +47,7 @@ public class Coordinator {
   private final URL node;
   private final MilestoneSource db;
   private final IotaAPI api;
-  private final Configuration config;
+  private final CoordinatorConfiguration config;
   private int latestMilestone;
   private String latestMilestoneHash;
   private long latestMilestoneTime;
@@ -56,7 +55,7 @@ public class Coordinator {
   private long milestoneTick;
   private int depth;
 
-  public Coordinator(Configuration config, SignatureSource signatureSource) throws IOException {
+  public Coordinator(CoordinatorConfiguration config, SignatureSource signatureSource) throws IOException {
     this.config = config;
     this.node = new URL(config.host);
 
@@ -69,32 +68,8 @@ public class Coordinator {
         .build();
   }
 
-  public static SignatureSource signatureSourceFromArgs(String signatureSourceType, String[] args) throws SSLException {
-    SignatureSource signatureSource;
-    if ("remote".equals(signatureSourceType)) {
-      RemoteSignatureSourceConfiguration sourceConf = new RemoteSignatureSourceConfiguration();
-      JCommander.newBuilder().addObject(sourceConf).acceptUnknownOptions(true).build().parse(args);
-
-      if (sourceConf.plaintext) {
-        signatureSource = new RemoteSignatureSource(sourceConf.uri);
-      } else {
-        signatureSource = new RemoteSignatureSource(sourceConf.uri, sourceConf.trustCertCollection, sourceConf.clientCertChain, sourceConf.clientKey);
-
-      }
-    } else if ("inmemory".equals(signatureSourceType)) {
-      InMemorySignatureSourceConfiguration sourceConf = new InMemorySignatureSourceConfiguration();
-      JCommander.newBuilder().addObject(sourceConf).acceptUnknownOptions(true).build().parse(args);
-
-      signatureSource = new InMemorySignatureSource(sourceConf.sigMode, sourceConf.seed, sourceConf.security);
-    } else {
-      throw new IllegalArgumentException("Invalid signatureSource type: " + signatureSourceType);
-    }
-
-    return signatureSource;
-  }
-
   public static void main(String[] args) throws Exception {
-    Configuration config = new Configuration();
+    CoordinatorConfiguration config = new CoordinatorConfiguration();
 
     JCommander.newBuilder()
         .addObject(config)
@@ -102,7 +77,7 @@ public class Coordinator {
         .build()
         .parse(args);
 
-    Coordinator coo = new Coordinator(config, signatureSourceFromArgs(config.signatureSource, args));
+    Coordinator coo = new Coordinator(config, SignatureSourceHelper.signatureSourceFromArgs(config.signatureSource, args));
     coo.setup();
     coo.start();
   }
