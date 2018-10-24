@@ -111,7 +111,7 @@ public class MilestoneTest {
     SignatureSourceServerConfiguration config = new SignatureSourceServerConfiguration();
     config.port = port;
     config.security = 1;
-    config.sigMode = "CURLP27";
+    config.sigMode = SpongeFactory.Mode.CURLP27;
     config.plaintext = true;
     config.seed = seed;
 

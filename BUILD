@@ -78,6 +78,7 @@ java_library(
             "conf/SignatureSourceServerConfiguration.java",
             "conf/BaseConfiguration.java",
             "conf/Configuration.java",
+            "conf/SpongeModeConverter.java",
             "conf/ShadowingConfiguration.java",
             "conf/POWModeValidator.java",
         ]
@@ -188,6 +189,7 @@ java_binary(
 java_test(
     name = "test_milestone",
     srcs = glob(["src/test/java/**/*.java"]),
+    flaky = True,
     test_class = "MilestoneTest",
     deps = [
         ":address_generator",

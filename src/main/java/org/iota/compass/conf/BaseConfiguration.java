@@ -26,6 +26,7 @@
 package org.iota.compass.conf;
 
 import com.beust.jcommander.Parameter;
+import jota.pow.SpongeFactory;
 
 public class BaseConfiguration {
   @Parameter(names = "-layers", description = "Path to folder containing Merkle Tree layers", required = true)
@@ -40,9 +41,10 @@ public class BaseConfiguration {
   @Parameter(names = "-broadcast", description = "Should Coordinator really broadcast milestones?")
   public boolean broadcast = false;
 
-  @Parameter(names = "-powMode", description = "Sponge mode to use for Proof of Work (one of CURLP81, KERL)", required = true, validateWith = {POWModeValidator.class})
-  public String powMode = "CURLP81";
+  @Parameter(names = "-powMode", description = "Sponge mode to use for Proof of Work (one of CURLP81, KERL)", required = true,
+      converter = SpongeModeConverter.class, validateValueWith = {POWModeValidator.class})
+  public SpongeFactory.Mode powMode = SpongeFactory.Mode.CURLP81;
 
-  @Parameter(names = "-signatureSource", description = "Signature source type (can be 'inmemory' or 'local')")
+  @Parameter(names = "-signatureSource", description = "Signature source type (can be 'inmemory' or 'remote')")
   public String signatureSource = "inmemory";
 }

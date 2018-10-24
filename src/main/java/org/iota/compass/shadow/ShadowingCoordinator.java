@@ -26,16 +26,18 @@
 package org.iota.compass.shadow;
 
 import com.beust.jcommander.JCommander;
-import org.iota.compass.*;
-import org.iota.compass.conf.ShadowingConfiguration;
-import org.iota.compass.crypto.Hasher;
 import jota.IotaAPI;
 import jota.dto.response.GetNodeInfoResponse;
 import jota.dto.response.GetTransactionsToApproveResponse;
 import jota.error.ArgumentException;
 import jota.model.Transaction;
-import jota.pow.SpongeFactory;
 import org.apache.commons.lang3.NotImplementedException;
+import org.iota.compass.Coordinator;
+import org.iota.compass.MilestoneDatabase;
+import org.iota.compass.MilestoneSource;
+import org.iota.compass.SignatureSource;
+import org.iota.compass.conf.ShadowingConfiguration;
+import org.iota.compass.crypto.Hasher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +69,7 @@ public class ShadowingCoordinator {
   public ShadowingCoordinator(ShadowingConfiguration config, SignatureSource signatureSource) throws IOException {
     this.config = config;
 
-    this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.powMode),
+    this.db = new MilestoneDatabase(config.powMode,
         signatureSource, config.layersPath);
     this.node = new URL(config.host);
     this.api = new IotaAPI.Builder()

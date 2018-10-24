@@ -25,16 +25,16 @@
 
 package org.iota.compass.conf;
 
-import com.beust.jcommander.IParameterValidator;
+import com.beust.jcommander.IValueValidator;
 import com.beust.jcommander.ParameterException;
 import jota.pow.SpongeFactory;
 
-public class POWModeValidator implements IParameterValidator {
+public class POWModeValidator implements IValueValidator<SpongeFactory.Mode> {
+
   @Override
-  public void validate(String name, String value) throws ParameterException {
-    SpongeFactory.Mode mode = SpongeFactory.Mode.valueOf(value);
+  public void validate(String s, SpongeFactory.Mode mode) throws ParameterException {
     if (mode != SpongeFactory.Mode.CURLP81 && mode != SpongeFactory.Mode.KERL) {
-      throw new ParameterException("Invalid mode provided for PoW.");
+      throw new ParameterException("Invalid mode provided for PoW. Must be CURLP81 or KERL.");
     }
   }
 }

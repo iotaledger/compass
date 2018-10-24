@@ -60,7 +60,7 @@ public class Coordinator {
     this.config = config;
     this.node = new URL(config.host);
 
-    this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.powMode),
+    this.db = new MilestoneDatabase(config.powMode,
         signatureSource, config.layersPath);
     this.api = new IotaAPI.Builder()
         .protocol(this.node.getProtocol())
@@ -71,7 +71,7 @@ public class Coordinator {
 
   public static SignatureSource signatureSourceFromArgs(String signatureSourceType, String[] args) throws SSLException {
     SignatureSource signatureSource;
-    if (signatureSourceType.equals("remote")) {
+    if ("remote".equals(signatureSourceType)) {
       RemoteSignatureSourceConfiguration sourceConf = new RemoteSignatureSourceConfiguration();
       JCommander.newBuilder().addObject(sourceConf).acceptUnknownOptions(true).build().parse(args);
 
@@ -81,11 +81,11 @@ public class Coordinator {
         signatureSource = new RemoteSignatureSource(sourceConf.uri, sourceConf.trustCertCollection, sourceConf.clientCertChain, sourceConf.clientKey);
 
       }
-    } else if (signatureSourceType.equals("inmemory")) {
+    } else if ("inmemory".equals(signatureSourceType)) {
       InMemorySignatureSourceConfiguration sourceConf = new InMemorySignatureSourceConfiguration();
       JCommander.newBuilder().addObject(sourceConf).acceptUnknownOptions(true).build().parse(args);
 
-      signatureSource = new InMemorySignatureSource(SpongeFactory.Mode.valueOf(sourceConf.sigMode), sourceConf.seed, sourceConf.security);
+      signatureSource = new InMemorySignatureSource(sourceConf.sigMode, sourceConf.seed, sourceConf.security);
     } else {
       throw new IllegalArgumentException("Invalid signatureSource type: " + signatureSourceType);
     }

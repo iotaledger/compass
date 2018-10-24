@@ -28,13 +28,16 @@ public class SignatureSourceServer {
 
   public SignatureSourceServer(SignatureSourceServerConfiguration config) {
     this.config = config;
-    this.signatureSource = new InMemorySignatureSource(SpongeFactory.Mode.valueOf(config.sigMode), config.seed, config.security);
+    this.signatureSource = new InMemorySignatureSource(config.sigMode, config.seed, config.security);
   }
 
   public static void main(String[] args) throws IOException, InterruptedException {
     SignatureSourceServerConfiguration config = new SignatureSourceServerConfiguration();
 
-    JCommander.newBuilder().addObject(config).build().parse(args);
+    JCommander.newBuilder()
+        .addObject(config)
+        .build()
+        .parse(args);
 
     final SignatureSourceServer server = new SignatureSourceServer(config);
     server.start();

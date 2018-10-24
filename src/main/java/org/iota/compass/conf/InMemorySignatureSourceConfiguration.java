@@ -26,13 +26,15 @@
 package org.iota.compass.conf;
 
 import com.beust.jcommander.Parameter;
+import jota.pow.SpongeFactory;
 
 public class InMemorySignatureSourceConfiguration {
   @Parameter(names = "-seed", description = "Seed", required = true)
   public String seed;
 
-  @Parameter(names = "-sigMode", description = "Sponge mode to use for signature creation (one of CURLP27, CURLP81, KERL)", required = true)
-  public String sigMode = "CURLP27";
+  @Parameter(names = "-sigMode", description = "Sponge mode to use for signature creation (one of CURLP27, CURLP81, KERL)",
+      required = true, converter = SpongeModeConverter.class)
+  public SpongeFactory.Mode sigMode = SpongeFactory.Mode.CURLP27;
 
   @Parameter(names = "-security", description = "Security level to use. Value must be in [1;3]")
   public Integer security = 1;
