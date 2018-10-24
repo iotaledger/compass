@@ -1,9 +1,11 @@
 package org.iota.compass;
 
 
+import jota.pow.JCurl;
 import jota.pow.SpongeFactory;
 import jota.utils.Converter;
 import org.iota.compass.crypto.ISS;
+import org.iota.compass.crypto.ISSInPlace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +35,24 @@ public class InMemorySignatureSource extends SignatureSource {
   @Override
   public SpongeFactory.Mode getSignatureMode() {
     return mode;
+  }
+
+  @Override
+  public String getAddress(long index) {
+    int[] subseed = new int[JCurl.HASH_LENGTH];
+    int[] key = new int[ISSInPlace.FRAGMENT_LENGTH * security];
+    int[] digests = new int[key.length / ISSInPlace.FRAGMENT_LENGTH * JCurl.HASH_LENGTH];
+    int[] address = new int[JCurl.HASH_LENGTH];
+
+    System.arraycopy(seed, 0, subseed, 0, subseed.length);
+    ISSInPlace.subseed(mode, subseed, index);
+    ISSInPlace.key(mode, subseed, key);
+    Arrays.fill(subseed, 0);
+    ISSInPlace.digests(mode, key, digests);
+    Arrays.fill(key, 0);
+    ISSInPlace.address(mode, digests, address);
+
+    return Converter.trytes(address);
   }
 
   /**

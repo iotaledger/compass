@@ -129,4 +129,10 @@ public class RemoteSignatureSource extends SignatureSource {
 
     return spongeMode;
   }
+
+  @Override
+  public String getAddress(long index) {
+    GetAddressResponse response = serviceStub.getAddress(GetAddressRequest.newBuilder().setIndex(index).build());
+    return response.getAddress();
+  }
 }

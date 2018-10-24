@@ -107,7 +107,7 @@ java_library(
             "conf/CoordinatorConfiguration.java",
             "conf/SpongeModeConverter.java",
             "conf/SignatureSourceTypeConverter.java",
-            "conf/AddressGeneratorConfiguration.java",
+            "conf/LayersCalculatorConfiguration.java",
             "conf/ShadowingCoordinatorConfiguration.java",
             "conf/POWModeValidator.java",
         ]
@@ -151,27 +151,18 @@ java_binary(
 )
 
 java_binary(
-    name = "address_generator",
-    srcs = [MAIN_BASE_PATH % "util/AddressGenerator.java"],
-    main_class = "org.iota.compass.util.AddressGenerator",
+    name = "layers_calculator",
+    srcs = [MAIN_BASE_PATH % "LayersCalculator.java"],
+    main_class = "org.iota.compass.LayersCalculator",
     visibility = ["//visibility:public"],
     runtime_deps = ["@org_slf4j_slf4j_simple//jar"],
     deps = [
         ":common",
+        ":conf",
         ":jota",
-        "@org_slf4j_slf4j_api//jar",
-    ],
-)
-
-java_binary(
-    name = "merkle_tree_calculator",
-    srcs = [MAIN_BASE_PATH % "util/MerkleTreeCalculator.java"],
-    main_class = "org.iota.compass.util.MerkleTreeCalculator",
-    visibility = ["//visibility:public"],
-    runtime_deps = ["@org_slf4j_slf4j_simple//jar"],
-    deps = [
-        ":common",
-        ":jota",
+        ":signature_source_common",
+        ":signature_source_helper",
+        "@com_beust_jcommander//jar",
         "@com_google_guava_guava//jar",
         "@org_slf4j_slf4j_api//jar",
     ],
@@ -220,13 +211,12 @@ java_test(
     name = "test_milestone",
     srcs = glob(["src/test/java/**/*.java"]),
     flaky = True,
-    test_class = "MilestoneTest",
+    test_class = "org.iota.compass.MilestoneTest",
     deps = [
-        ":address_generator",
         ":common",
         ":conf",
         ":jota",
-        ":merkle_tree_calculator",
+        ":layers_calculator",
         ":signature_source_common",
         ":signature_source_inmemory",
         ":signature_source_remote",

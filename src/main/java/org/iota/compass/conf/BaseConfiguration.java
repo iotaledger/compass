@@ -27,6 +27,7 @@ package org.iota.compass.conf;
 
 import com.beust.jcommander.Parameter;
 import jota.pow.SpongeFactory;
+import org.iota.compass.SignatureSourceType;
 
 public class BaseConfiguration {
   @Parameter(names = "-layers", description = "Path to folder containing Merkle Tree layers", required = true)
@@ -45,6 +46,6 @@ public class BaseConfiguration {
       converter = SpongeModeConverter.class, validateValueWith = {POWModeValidator.class})
   public SpongeFactory.Mode powMode = SpongeFactory.Mode.CURLP81;
 
-  @Parameter(names = "-signatureSource", description = "Signature source type (can be 'inmemory' or 'remote')")
-  public String signatureSource = "inmemory";
+  @Parameter(names = "-signatureSource", description = "Signature source type (can be 'inmemory' or 'remote')", converter = SignatureSourceTypeConverter.class)
+  public SignatureSourceType signatureSource = SignatureSourceType.INMEMORY;
 }

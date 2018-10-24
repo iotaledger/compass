@@ -23,17 +23,32 @@
  *     https://www.iota.org/
  */
 
-package org.iota.compass.conf;
+package org.iota.compass;
 
-import com.beust.jcommander.Parameter;
+import java.security.SecureRandom;
+import java.util.Random;
 
-public class AddressGeneratorConfiguration {
-  @Parameter(names = "-layers", description = "Path to folder containing Merkle Tree layers", required = true)
-  public String layersPath;
+public class TestUtil {
 
-  @Parameter(names = "-depth", description = "Depth the resulting merkle tree", required = true)
-  public int depth;
+  public static final String ALPHABET = "9ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  public static final int randomnessSeed = 1;
+  public static final Random random = new SecureRandom();
 
-  @Parameter(names = "-signatureSource", description = "Signature source type (can be 'inmemory' or 'remote')")
-  public String signatureSource = "inmemory";
+  {
+    //for deterministic testing
+    random.setSeed(randomnessSeed);
+  }
+
+  public static String nextSeed() {
+    return nextTrytes(81);
+  }
+
+  public static String nextTrytes(int count) {
+    char[] buf = new char[count];
+
+    for (int idx = 0; idx < buf.length; ++idx)
+      buf[idx] = ALPHABET.charAt(random.nextInt(ALPHABET.length()));
+
+    return new String(buf);
+  }
 }

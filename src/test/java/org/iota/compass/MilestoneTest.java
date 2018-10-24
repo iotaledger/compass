@@ -23,16 +23,17 @@
  *     https://www.iota.org/
  */
 
+package org.iota.compass;
+
 import com.google.common.base.Strings;
-import org.iota.compass.*;
-import org.iota.compass.conf.SignatureSourceServerConfiguration;
-import org.iota.compass.crypto.Hasher;
-import org.iota.compass.crypto.ISS;
-import org.iota.compass.util.AddressGenerator;
-import org.iota.compass.util.MerkleTreeCalculator;
 import jota.model.Transaction;
 import jota.pow.SpongeFactory;
 import jota.utils.Converter;
+import org.iota.compass.*;
+import org.iota.compass.conf.LayersCalculatorConfiguration;
+import org.iota.compass.conf.SignatureSourceServerConfiguration;
+import org.iota.compass.crypto.Hasher;
+import org.iota.compass.crypto.ISS;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -63,11 +64,13 @@ public class MilestoneTest {
     final int MWM = 4;
 
     final SpongeFactory.Mode sigMode = signatureSource.getSignatureMode();
-    final AddressGenerator gen = new AddressGenerator(sigMode, seed, signatureSource.getSecurity(), depth);
-    final List<String> addresses = gen.calculateAllAddresses();
 
-    final MerkleTreeCalculator treeCalculator = new MerkleTreeCalculator(sigMode);
-    final List<List<String>> layers = treeCalculator.calculateAllLayers(addresses);
+    final LayersCalculatorConfiguration layersConfig = new LayersCalculatorConfiguration();
+    layersConfig.depth = depth;
+    final LayersCalculator layersCalculator = new LayersCalculator(layersConfig, signatureSource);
+
+    final List<String> addresses = layersCalculator.calculateAllAddresses();
+    final List<List<String>> layers = layersCalculator.calculateAllLayers(addresses);
     final MilestoneDatabase db = new MilestoneDatabase(powMode, signatureSource, layers);
 
     for (int i = 0; i < (1 << depth); i++) {

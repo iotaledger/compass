@@ -24,4 +24,11 @@ public abstract class SignatureSource {
    */
   public abstract SpongeFactory.Mode getSignatureMode();
 
+
+  /**
+   * @param index the key / leaf index
+   * @return the address for the given key / leaf index
+   */
+  public abstract String getAddress(long index);
+
 }

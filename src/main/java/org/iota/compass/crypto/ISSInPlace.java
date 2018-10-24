@@ -44,7 +44,7 @@ public class ISSInPlace {
   private static final int MIN_TRIT_VALUE = -1, MAX_TRIT_VALUE = 1;
   private static final int MIN_TRYTE_VALUE = -13, MAX_TRYTE_VALUE = 13;
 
-  public static void subseed(SpongeFactory.Mode mode, int[] subseed, int index) {
+  public static void subseed(SpongeFactory.Mode mode, int[] subseed, long index) {
 
     if (index < 0) {
       throw new RuntimeException("Invalid subseed index: " + index);
@@ -55,7 +55,6 @@ public class ISSInPlace {
     }
 
     while (index-- > 0) {
-
       for (int i = 0; i < subseed.length; i++) {
 
         if (++subseed[i] > MAX_TRIT_VALUE) {

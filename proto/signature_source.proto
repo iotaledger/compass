@@ -13,29 +13,38 @@ enum SignatureMode {
 }
 
 message GetSignatureRequest {
-  uint64 index = 1;
-  string bundleHash = 2;
+    uint64 index = 1;
+    string bundleHash = 2;
 }
 
 message GetSignatureResponse {
-  string signature = 1;
+    string signature = 1;
 }
 
-message GetSecurityRequest {}
+message GetSecurityRequest {
+}
 message GetSecurityResponse {
- uint32 security = 1;
+    uint32 security = 1;
 }
 
 message GetSignatureModeRequest {
 }
 
 message GetSignatureModeResponse {
-  SignatureMode mode = 1;
+    SignatureMode mode = 1;
 }
 
+message GetAddressRequest {
+    uint64 index = 1;
+}
+message GetAddressResponse {
+    string address = 1;
+}
 
 service SignatureSource {
-  rpc GetSecurity(GetSecurityRequest) returns(GetSecurityResponse);
-  rpc GetSignatureMode(GetSignatureModeRequest) returns(GetSignatureModeResponse);
-  rpc GetSignature(GetSignatureRequest) returns(GetSignatureResponse);
+    rpc GetSecurity (GetSecurityRequest) returns (GetSecurityResponse);
+    rpc GetSignatureMode (GetSignatureModeRequest) returns (GetSignatureModeResponse);
+    rpc GetSignature (GetSignatureRequest) returns (GetSignatureResponse);
+    // Note that implementation of this method is optional.
+    rpc GetAddress (GetAddressRequest) returns (GetAddressResponse);
 }

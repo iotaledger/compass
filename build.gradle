@@ -32,7 +32,7 @@ task merkleTreeCalculator(type: CreateStartScripts) {
 }
 
 task addressGenerator(type: CreateStartScripts) {
-    mainClassName = 'coo.util.AddressGenerator'
+    mainClassName = 'coo.util.LayersCalculator'
     applicationName = 'addressGenerator'
     classpath = startScripts.classpath
     outputDir = startScripts.outputDir

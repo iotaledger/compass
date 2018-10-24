@@ -142,7 +142,16 @@ public class SignatureSourceServer {
           .setSignature(signatureSource.getSignature(request.getIndex(), request.getBundleHash()))
           .build());
       responseObserver.onCompleted();
-      super.getSignature(request, responseObserver);
+    }
+
+    @Override
+    public void getAddress(GetAddressRequest request, StreamObserver<GetAddressResponse> responseObserver) {
+      log.info("Responding to getAddress for index: " + request.getIndex());
+
+      responseObserver.onNext(GetAddressResponse.newBuilder()
+          .setAddress(signatureSource.getAddress(request.getIndex()))
+          .build());
+      responseObserver.onCompleted();
     }
   }
 
