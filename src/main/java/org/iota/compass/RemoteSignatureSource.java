@@ -90,44 +90,48 @@ public class RemoteSignatureSource extends SignatureSource {
 
   @Override
   public int getSecurity() {
-    if (cachedSecurity.isPresent())
-      return cachedSecurity.get();
+    synchronized (cachedSecurity) {
+      if (cachedSecurity.isPresent())
+        return cachedSecurity.get();
 
 
-    GetSecurityResponse response = serviceStub.getSecurity(GetSecurityRequest.getDefaultInstance());
-    cachedSecurity = Optional.of(response.getSecurity());
+      GetSecurityResponse response = serviceStub.getSecurity(GetSecurityRequest.getDefaultInstance());
+      cachedSecurity = Optional.of(response.getSecurity());
 
-    log.info("Caching security level: " + response.getSecurity());
+      log.info("Caching security level: " + response.getSecurity());
 
-    return response.getSecurity();
+      return response.getSecurity();
+    }
   }
 
   @Override
   public SpongeFactory.Mode getSignatureMode() {
-    if (cachedSignatureMode.isPresent()) return cachedSignatureMode.get();
+    synchronized (cachedSignatureMode) {
+      if (cachedSignatureMode.isPresent()) return cachedSignatureMode.get();
 
-    GetSignatureModeResponse response = serviceStub.getSignatureMode(GetSignatureModeRequest.getDefaultInstance());
+      GetSignatureModeResponse response = serviceStub.getSignatureMode(GetSignatureModeRequest.getDefaultInstance());
 
-    SpongeFactory.Mode spongeMode;
-    switch (response.getMode()) {
-      case CURLP27:
-        spongeMode = SpongeFactory.Mode.CURLP27;
-        break;
-      case CURLP81:
-        spongeMode = SpongeFactory.Mode.CURLP81;
-        break;
-      case KERL:
-        spongeMode = SpongeFactory.Mode.KERL;
-        break;
-      default:
-        throw new RuntimeException("Unknown remote signature mode: " + response.getMode());
+      SpongeFactory.Mode spongeMode;
+      switch (response.getMode()) {
+        case CURLP27:
+          spongeMode = SpongeFactory.Mode.CURLP27;
+          break;
+        case CURLP81:
+          spongeMode = SpongeFactory.Mode.CURLP81;
+          break;
+        case KERL:
+          spongeMode = SpongeFactory.Mode.KERL;
+          break;
+        default:
+          throw new RuntimeException("Unknown remote signature mode: " + response.getMode());
+      }
+
+      cachedSignatureMode = Optional.of(spongeMode);
+
+      log.info("Caching signature mode: " + spongeMode);
+
+      return spongeMode;
     }
-
-    cachedSignatureMode = Optional.of(spongeMode);
-
-    log.info("Caching signature mode: " + spongeMode);
-
-    return spongeMode;
   }
 
   @Override

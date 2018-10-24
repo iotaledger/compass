@@ -16,4 +16,5 @@ java_grpc_library(
 proto_library(
     name = "signature_source_proto",
     srcs = ["signature_source.proto"],
+    visibility = ["//visibility:public"],
 )
