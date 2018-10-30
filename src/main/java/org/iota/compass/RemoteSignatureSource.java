@@ -79,10 +79,10 @@ public class RemoteSignatureSource extends SignatureSource {
   }
 
   @Override
-  public String getSignature(long index, String bundleHash) {
-    log.trace("Requesting signature for index: " + index + " and bundle hash: " + bundleHash);
+  public String getSignature(long index, String hash) {
+    log.trace("Requesting signature for index: " + index + " and hash: " + hash);
 
-    GetSignatureResponse response = serviceStub.getSignature(GetSignatureRequest.newBuilder().setIndex(index).setBundleHash(bundleHash).build());
+    GetSignatureResponse response = serviceStub.getSignature(GetSignatureRequest.newBuilder().setIndex(index).setHash(hash).build());
 
 
     return response.getSignature();

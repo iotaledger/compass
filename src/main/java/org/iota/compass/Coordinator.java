@@ -26,18 +26,15 @@
 package org.iota.compass;
 
 import com.beust.jcommander.JCommander;
-import org.iota.compass.conf.CoordinatorConfiguration;
 import jota.IotaAPI;
 import jota.dto.response.GetNodeInfoResponse;
 import jota.dto.response.GetTransactionsToApproveResponse;
 import jota.error.ArgumentException;
 import jota.model.Transaction;
-import org.iota.compass.conf.InMemorySignatureSourceConfiguration;
-import org.iota.compass.conf.RemoteSignatureSourceConfiguration;
+import org.iota.compass.conf.CoordinatorConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.List;

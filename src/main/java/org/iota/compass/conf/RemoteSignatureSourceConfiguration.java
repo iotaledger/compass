@@ -28,18 +28,18 @@ package org.iota.compass.conf;
 import com.beust.jcommander.Parameter;
 
 public class RemoteSignatureSourceConfiguration {
-  @Parameter(names = "-signatureSourceURI", description = "URI for remote signature source", required = true)
+  @Parameter(names = "-remoteURI", description = "URI for remote signature source", required = true)
   public String uri;
 
-  @Parameter(names = "-signatureSourcePlaintext", description = "Whether to communicate with signatureSource in plaintext")
+  @Parameter(names = "-remotePlaintext", description = "Whether to communicate with signatureSource in plaintext")
   public boolean plaintext = false;
 
-  @Parameter(names = "-signatureSourceTrustCertCollection", description = "Path to trust cert collection for encrypted connection to remote signature source server")
+  @Parameter(names = "-remoteTrustCertCollection", description = "Path to trust cert collection for encrypted connection to remote signature source server")
   public String trustCertCollection = null;
 
-  @Parameter(names = "-signatureSourceClientCertChain", description = "Path to client certificate chain to use for authenticating to the remote signature source server")
+  @Parameter(names = "-remoteClientCertChain", description = "Path to client certificate chain to use for authenticating to the remote signature source server")
   public String clientCertChain = null;
 
-  @Parameter(names = "-signatureSourceClientKey", description = "Path to private key to use for authenticating to the remote signature source server")
+  @Parameter(names = "-remoteClientKey", description = "Path to private key to use for authenticating to the remote signature source server")
   public String clientKey = null;
 }

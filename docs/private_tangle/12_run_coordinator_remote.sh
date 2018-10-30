@@ -10,6 +10,6 @@ docker run -t --net host --rm -v `pwd`/data:/data iota/compass/docker:coordinato
 	-tick $tick \
 	-host $host \
 	-signatureSource remote \
-	-signatureSourceURI localhost:50051 \
-	-signatureSourcePlaintext \
+	-remoteURI localhost:50051 \
+	-remotePlaintext \
 	"$@"

@@ -29,7 +29,6 @@ import com.google.common.base.Strings;
 import jota.model.Transaction;
 import jota.pow.SpongeFactory;
 import jota.utils.Converter;
-import org.iota.compass.*;
 import org.iota.compass.conf.LayersCalculatorConfiguration;
 import org.iota.compass.conf.SignatureSourceServerConfiguration;
 import org.iota.compass.crypto.Hasher;
@@ -53,13 +52,7 @@ import static jota.pow.SpongeFactory.Mode.*;
 @RunWith(JUnit4.class)
 public class MilestoneTest {
 
-  private SignatureSource getLocalSignatureSource(SpongeFactory.Mode sigMode, int security) {
-    final String seed = TestUtil.nextSeed();
-    return new InMemorySignatureSource(sigMode, seed, security);
-  }
-
-
-  private void runForMode(SpongeFactory.Mode powMode, SignatureSource signatureSource, String seed) {
+  private void runForMode(SpongeFactory.Mode powMode, SignatureSource signatureSource) {
     final int depth = 4;
     final int MWM = 4;
 
@@ -123,7 +116,7 @@ public class MilestoneTest {
 
     SignatureSource source = new RemoteSignatureSource("localhost:" + port);
 
-    runForMode(SpongeFactory.Mode.CURLP81, source, seed);
+    runForMode(SpongeFactory.Mode.CURLP81, source);
 
     server.stop();
   }
@@ -152,7 +145,7 @@ public class MilestoneTest {
           SignatureSource source = new InMemorySignatureSource(sigMode, seed, security);
 
           System.err.println("Running: " + powMode + " : " + sigMode + " : " + security);
-          runForMode(powMode, source, seed);
+          runForMode(powMode, source);
         }
       }
     }

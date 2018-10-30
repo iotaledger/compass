@@ -136,10 +136,10 @@ public class SignatureSourceServer {
 
     @Override
     public void getSignature(GetSignatureRequest request, StreamObserver<GetSignatureResponse> responseObserver) {
-      log.info("Responding to getSignature for index: " + request.getIndex() + " and bundle hash: " + request.getBundleHash());
+      log.info("Responding to getSignature for index: " + request.getIndex() + " and hash: " + request.getHash());
 
       responseObserver.onNext(GetSignatureResponse.newBuilder()
-          .setSignature(signatureSource.getSignature(request.getIndex(), request.getBundleHash()))
+          .setSignature(signatureSource.getSignature(request.getIndex(), request.getHash()))
           .build());
       responseObserver.onCompleted();
     }

@@ -82,7 +82,7 @@ public class LayersCalculator implements Runnable {
     }
 
     List<String> addresses = calculateAllAddresses();
-    log.info("Calcalated all addresses.");
+    log.info("Calculated all addresses.");
     List<List<String>> layers = calculateAllLayers(addresses);
 
     for (int i = 0; i < layers.size(); i++) {
@@ -92,6 +92,7 @@ public class LayersCalculator implements Runnable {
         log.error("Error writing layer: " + i, e);
       }
     }
+    log.info("Successfully wrote Merkle Tree with root: " + layers.get(0).get(0));
   }
 
   public List<String> calculateAllAddresses() {

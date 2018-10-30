@@ -14,7 +14,7 @@ enum SignatureMode {
 
 message GetSignatureRequest {
     uint64 index = 1;
-    string bundleHash = 2;
+    string hash = 2;
 }
 
 message GetSignatureResponse {

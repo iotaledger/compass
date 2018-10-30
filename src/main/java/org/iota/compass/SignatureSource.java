@@ -7,7 +7,7 @@ public abstract class SignatureSource {
    * Provides the signature for the given milestone index.
    *
    * @param index      the key / leaf index
-   * @param bundleHash the bundle hash to sign
+   * @param bundleHash the hash to sign
    * @return trit-array containing the key
    */
   public abstract String getSignature(long index, String bundleHash);

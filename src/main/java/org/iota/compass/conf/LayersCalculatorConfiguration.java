@@ -29,7 +29,7 @@ import com.beust.jcommander.Parameter;
 import org.iota.compass.SignatureSourceType;
 
 public class LayersCalculatorConfiguration {
-  @Parameter(names = "-layers", description = "Path to folder containing Merkle Tree layers", required = true)
+  @Parameter(names = "-layers", description = "Path to folder where Merkle Tree layers will be written to", required = true)
   public String layersPath;
 
   @Parameter(names = "-depth", description = "Depth the resulting merkle tree", required = true)
