@@ -152,7 +152,7 @@ public class Coordinator {
 
     log.info("Starting index from: " + latestMilestone);
     if (nodeInfoResponse.getLatestMilestoneIndex() > latestMilestone && !config.inception) {
-      throw new RuntimeException("Provided index is lower than latest seen milestone.");
+      throw new RuntimeException("Provided index is lower than latest seen milestone: " + nodeInfoResponse.getLatestMilestoneIndex() + " vs " + latestMilestone);
     }
 
     milestoneTick = config.tick;

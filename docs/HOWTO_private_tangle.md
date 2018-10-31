@@ -5,8 +5,6 @@ A private Tangle consists in a set of IRI nodes interconnected between each othe
 
 A private Tangle can consist of a single IRI instance. The instructions below will guide you through creating your own single node private Tangle.
 
-
-
 ### The components
 - IRI — IOTA Reference Implementation — software
 - A custom `iota.ini` file
@@ -57,7 +55,6 @@ apt-get install oracle-java8-installer
 #### Configure IRI
 
 ```
-mkdir /iri/data
 mkdir /iri/conf
 ```
 
@@ -71,12 +68,14 @@ MWM = 9
 SNAPSHOT_FILE = /iri/conf/snapshot.txt
 COORDINATOR = "coordinator address value" //TODO update with Coordinator address in a later step.
 MILESTONE_START_INDEX = 2
+NUMBER_OF_KEYS_IN_A_MILESTONE = 8
 MAX_DEPTH = 1000
 ```
 
-`MAX_DEPTH = 1000` - only required on the node where the COO will be issuing milestones. If you are creating more than one IRI node, we recommend you remove this option from their `iota.ini` file.
-`MWM = 9` - sets the minimum weight magnitude (MWM) required by a client when performing proof-of-work (PoW). The minimum value that can be configured is 9. A value lower than that requires code changes in the network stack. Keep in mind that an MWM of 9 requires a negligible amount of PoW, so we do not expect any requirement to lower it further. For comparison, the IOTA Mainnet Network uses `MWM = 14`.
-`COORDINATOR` - we will bootstrap the coordinator in **Step 2** and replace the setting value with the correct value.
+- `MAX_DEPTH = 1000` - only required on the node where the COO will be issuing milestones. If you are creating more than one IRI node, we recommend you remove this option from their `iota.ini` file.
+- `MWM = 9` - sets the minimum weight magnitude (MWM) required by a client when performing proof-of-work (PoW). The minimum value that can be configured is 9. A value lower than that requires code changes in the network stack. Keep in mind that an MWM of 9 requires a negligible amount of PoW, so we do not expect any requirement to lower it further. For comparison, the IOTA Mainnet Network uses `MWM = 14`.
+- `COORDINATOR` - we will bootstrap the coordinator in **Step 2** and replace the setting value with the correct value.
+- `NUMBER_OF_KEYS_IN_A_MILESTONE = 8` - see **Step 2** for context
 
 #### Create custom genesis
 Create a custom genesis `snapshot.txt` file and place it in the `/iri/conf` folder of the main node (the node that will be issuing milestones).  
@@ -87,58 +86,31 @@ WYF9OOFCQJRTLTRMREDWPOBQ9KNDMFVZSROZVXACAWKUMXAIYTFQCPAYZHNGKIWZZGKCSHSSTRDHDAJC
 ```
 This allocates all token supply to seed `SEED99999999999999999999999999999999999999999999999999999999999999999999999999999`
 
-## Step 2: Setting up The Coordinator
-The COO uses Java 8 to run. These instructions assume that Java 8 is available on the server running the COO. Also, these instructions assume that COO runs on the same server where the IRI node resides, however keep in mind it is not a requirement.
+## Step 2: Setting up the Coordinator
+The Coordinator uses Java to run. These instructions assume that you have already setup [bazel](https://bazel.build) on 
+your system and installed the `//docker:coordinator` and `//docker:layers_calculator` images. The relevant scripts are inside the `private_tangle` folder.
 
-#### Untar the file under `/root`
+### Bootstrapping the Coordinator
+We now need to bootstrap the Coordinator milestone merkle tree. 
+1. Generate a valid random seed. 
+   The seed is going to be used by the COO to generate and sign milestones. **Do not lose the generated seed.**
 
-```
-cd /root
-tar xvfz coordinator.tgz
-```
+   ```
+   cat /dev/urandom |LC_ALL=C tr -dc 'A-Z9' | fold -w 81 | head -n 1 
+   ```
 
-We now need to bootstrap the coordinator milestone merkle tree. Generate a valid random seed. The seed is going to be used by the COO to generate and sign milestones. **Do not lose the generated seed.**
+   The output of the command above will be a random string of 81 chars, all capital letters, such as this:
+   `COOSEED99999999999999999999999999999999999999999999999999999999999999999999999999`. 
 
-```
-cat /dev/urandom |LC_ALL=C tr -dc 'A-Z9' | fold -w 81 | head -n 1 
-```
-
-The output of the command above will be a random string of 81 chars, all capital letters, such as this: `COOSEED99999999999999999999999999999999999999999999999999999999999999999999999999`. 
-
-
-Decide on the depth of the coordinator. 
-The higher the number, the more milestones can be issued: At depth 18, = ~260 thousand milestones, 20 = ~1 million milestones, 21 = ~2 million milestones – or more precisely 2^DEPTH. For this exercise, we use depth 20 — allowing 2^20 milestones to be issued. We will later see that milestones will be issued every 40 seconds.
-
-Keep in mind this process is highly CPU intensive. For example, generating a depth 20 tree on a 64 CPU server takes about 1 hour.
-
-```
-cd coordinator
-./bin/addressGenerator CURLP27 <coo seed value> 1 20 layers.csv
-```
-
-Please change `<coo seed value>` with your own COO seed.
-
-Allow some time for the above command to complete. The duration depends on the depth used and the CPU power of your server. You may want to run it on a much powerful server and then copy the `layers.csv` file over.
-
-```
-./bin/merkleTreeCalculator CURLP27 layers.csv layers
-```
-
-The command above will take a few minutes or less for our example depth (20).
-
-The last command creates layer files under the layers directory. 
-
-Now, you need to look at the first layer of the COO seed
-
-```
-cat layers/layer.0.csv
-```
-
-The output is an 81 char string. For example `QAXEPOBAWUVWTPTVDBCDMMQOUXOWZUGAJKAJORW9YKBQWDDUGATZRKZUQMXQFQAOEHJWFNWHS9MQSGHPO`. We call this the COO address.
-
-1. Copy the COO address.
-2. Open the `iota.ini` file. 
-3. Replace the placeholder `"coordinator address value"` value in the `COORDINATOR` option with the copied COO address.
+2. Decide on the depth of the coordinator. 
+   The higher the number, the more milestones can be issued: At depth 18, = ~260 thousand milestones, 
+   20 = ~1 million milestones, 21 = ~2 million milestones – or more precisely 2^DEPTH. 
+   For this exercise, we use depth 8 — allowing 256 milestones to be issued. 
+   Keep in mind this process is highly CPU intensive. For example, generating a depth 20 tree on a 64 CPU server takes about 1 hour.
+3. Copy the `config.example.json` file to `config.json` and alter its contents (specifying correct depth & seed).
+4. Run the layer calculator via `./01_calculate_layers.sh` from the `private_tangle` folder.
+5. After completing execution, the LayersCalculator will tell you the root of the generated merkle tree. *This is the Coordinator's address*. 
+   You should now fill this in in the `iota.ini` file: Replace the placeholder `"coordinator address value"` value in the `COORDINATOR` option with the copied COO address.
 
 ## Step 3: Running the Node
 It’s time to start the node. The following step assumes you are running with Ubuntu or any other Linux distribution that uses `systemd`.
@@ -204,34 +176,21 @@ Please refer to https://iota.readme.io/reference for all HTTP IRI API commands a
 
 
 ## Step 4: Starting the Coordinator
-The IRI node is now running but it has not received its first milestone. We need to bootstrap the Tangle. We suggest at this stage to have two terminals open on your server. One with journalctl or equivalent looking at its logs and one running the following commands:
+The IRI node is now running but it has not received its first milestone. We need to bootstrap the Tangle. 
+We suggest at this stage to have two terminals open on your server. One with journalctl or equivalent looking at its logs and one running the following commands:
 
 ```
-cd /root/coordinator
-./bin/coordinator -layers layers -host http://localhost:14265 -seed <coo seed value> -tick 40000 -depthScale 1.01 -depth 3 -broadcast -mwm 9 -index 2 -sigMode CURLP27 -powMode CURLP81 -bootstrap
+cd docs/private_tangle
+./02_run_coordinator -bootstrap -broadcast
 ```
-
-Please change `<coo seed value>` with your own COO seed.
 
 Let this command run until you see output similar to:
 ```
 07/20 09:10:43.699 [Latest Milestone Tracker] INFO  com.iota.iri.Milestone - Latest milestone has changed from #2 to #3
 07/20 09:10:45.385 [Solid Milestone Tracker] INFO  com.iota.iri.Milestone - Latest SOLID SUBTANGLE milestone has changed from #2 to #3
 ```
-As soon as you see the following output, you can kill the `./bin/coordinator` command by hitting CTRL-C. The Tangle has been bootstrapped. You can now issue another COO command again, that will run indefinitely. The command will now be issued without the without the `-bootstrap` option.
-At this stage we recommend to run the following command via a screen session.
 
-```
-./bin/coordinator -layers layers -host http://localhost:14265 -seed <coo seed value> -tick 40000 -depthScale 1.01 -depth 3 -broadcast -mwm 9 -sigMode CURLP27 -powMode CURLP81
-```
+For future runs, you no longer need to provide the `-bootstrap` parameter (the Coordinator actually won't start with it).
+A new milestone will be issued by the COO every 60 seconds (set by `-tick 60000` in the `config.json`). 
 
-Please change `<coo seed value>` with your own COO seed.
-
-A new milestone will be issued by the COO every 40 seconds (set by `-tick 40000`). IRI should show this in its logs by displaying output similar to:
-
-```
-07/20 09:13:48.699 [Latest Milestone Tracker] INFO  com.iota.iri.Milestone - Latest milestone has changed from #3 to #4
-07/20 09:13:50.374 [Solid Milestone Tracker] INFO  com.iota.iri.Milestone - Latest SOLID SUBTANGLE milestone has changed from #3 to #4
-```
-
-And so on. You now have a working Private Tangle.
+You now have a working Private Tangle.
