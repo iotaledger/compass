@@ -1,4 +1,4 @@
-MAIN_BASE_PATH = "src/main/java/coo/%s"
+MAIN_BASE_PATH = "src/main/java/org/iota/compass/%s"
 
 java_import(
     name = "jota",
@@ -28,9 +28,70 @@ java_library(
     ],
     deps = [
         ":jota",
+        ":signature_source_common",
         "@com_google_guava_guava//jar",
         "@org_bouncycastle_bcprov_jdk15on//jar",
         "@org_slf4j_slf4j_api//jar",
+    ],
+)
+
+java_library(
+    name = "signature_source_inmemory",
+    srcs = [MAIN_BASE_PATH % "InMemorySignatureSource.java"],
+    deps = [
+        ":common",
+        ":jota",
+        ":signature_source_common",
+        "@org_slf4j_slf4j_api//jar",
+    ],
+)
+
+java_library(
+    name = "signature_source_remote",
+    srcs = [MAIN_BASE_PATH % "RemoteSignatureSource.java"],
+    deps = [
+        ":common",
+        ":jota",
+        ":signature_source_common",
+        "//proto:signature_source_java_grpc",
+        "//proto:signature_source_java_proto",
+        "@com_google_api_grpc_proto_google_common_protos//jar",
+        "@com_google_code_findbugs_jsr305//jar",
+        "@com_google_guava_guava//jar",
+        "@com_google_protobuf//:protobuf_java",
+        "@com_google_protobuf//:protobuf_java_util",
+        "@io_grpc_grpc_java//alts",
+        "@io_grpc_grpc_java//core",
+        "@io_grpc_grpc_java//netty",
+        "@io_grpc_grpc_java//protobuf",
+        "@io_grpc_grpc_java//stub",
+        "@io_netty_netty_handler//jar",
+        "@org_slf4j_slf4j_api//jar",
+    ],
+)
+
+java_library(
+    name = "signature_source_common",
+    srcs = [(MAIN_BASE_PATH % x) for x in [
+        "SignatureSource.java",
+        "SignatureSourceType.java",
+    ]],
+    deps = [
+        ":jota",
+    ],
+)
+
+java_library(
+    name = "signature_source_helper",
+    srcs = [(MAIN_BASE_PATH % x) for x in [
+        "SignatureSourceHelper.java",
+    ]],
+    deps = [
+        ":conf",
+        ":signature_source_common",
+        ":signature_source_inmemory",
+        ":signature_source_remote",
+        "@com_beust_jcommander//jar",
     ],
 )
 
@@ -39,41 +100,69 @@ java_library(
     srcs = [
         (MAIN_BASE_PATH % x)
         for x in [
+            "conf/InMemorySignatureSourceConfiguration.java",
+            "conf/RemoteSignatureSourceConfiguration.java",
+            "conf/SignatureSourceServerConfiguration.java",
             "conf/BaseConfiguration.java",
-            "conf/Configuration.java",
-            "conf/ShadowingConfiguration.java",
+            "conf/CoordinatorConfiguration.java",
+            "conf/SpongeModeConverter.java",
+            "conf/SignatureSourceTypeConverter.java",
+            "conf/LayersCalculatorConfiguration.java",
+            "conf/ShadowingCoordinatorConfiguration.java",
             "conf/POWModeValidator.java",
         ]
     ],
     deps = [
         ":common",
         ":jota",
+        ":signature_source_common",
         "@com_beust_jcommander//jar",
     ],
 )
 
 java_binary(
-    name = "address_generator",
-    srcs = [MAIN_BASE_PATH % "util/AddressGenerator.java"],
-    main_class = "coo.util.AddressGenerator",
+    name = "signature_source_server",
+    srcs = [MAIN_BASE_PATH % "SignatureSourceServer.java"],
+    main_class = "org.iota.compass.SignatureSourceServer",
     visibility = ["//visibility:public"],
     runtime_deps = ["@org_slf4j_slf4j_simple//jar"],
     deps = [
         ":common",
+        ":conf",
         ":jota",
+        ":signature_source_common",
+        ":signature_source_inmemory",
+        "//proto:signature_source_java_grpc",
+        "//proto:signature_source_java_proto",
+        "@com_beust_jcommander//jar",
+        "@com_google_api_grpc_proto_google_common_protos//jar",
+        "@com_google_code_findbugs_jsr305//jar",
+        "@com_google_guava_guava//jar",
+        "@com_google_protobuf//:protobuf_java",
+        "@com_google_protobuf//:protobuf_java_util",
+        "@io_grpc_grpc_java//alts",
+        "@io_grpc_grpc_java//core",
+        "@io_grpc_grpc_java//netty",
+        "@io_grpc_grpc_java//protobuf",
+        "@io_grpc_grpc_java//stub",
+        "@io_netty_netty_handler//jar",
         "@org_slf4j_slf4j_api//jar",
     ],
 )
 
 java_binary(
-    name = "merkle_tree_calculator",
-    srcs = [MAIN_BASE_PATH % "util/MerkleTreeCalculator.java"],
-    main_class = "coo.util.MerkleTreeCalculator",
+    name = "layers_calculator",
+    srcs = [MAIN_BASE_PATH % "LayersCalculator.java"],
+    main_class = "org.iota.compass.LayersCalculator",
     visibility = ["//visibility:public"],
     runtime_deps = ["@org_slf4j_slf4j_simple//jar"],
     deps = [
         ":common",
+        ":conf",
         ":jota",
+        ":signature_source_common",
+        ":signature_source_helper",
+        "@com_beust_jcommander//jar",
         "@com_google_guava_guava//jar",
         "@org_slf4j_slf4j_api//jar",
     ],
@@ -85,14 +174,16 @@ COORDINATOR_RUNTIME_DEPS = [
 
 java_binary(
     name = "shadowing_coordinator",
-    srcs = [MAIN_BASE_PATH % "shadow/ShadowingCoordinator.java"],
-    main_class = "coo.shadow.ShadowingCoordinator",
+    srcs = [MAIN_BASE_PATH % "ShadowingCoordinator.java"],
+    main_class = "org.iota.compass.ShadowingCoordinator",
     visibility = ["//visibility:public"],
     runtime_deps = COORDINATOR_RUNTIME_DEPS,
     deps = [
         ":common",
         ":conf",
         ":jota",
+        ":signature_source_common",
+        ":signature_source_helper",
         "@com_beust_jcommander//jar",
         "@org_apache_commons_commons_lang3//jar",
         "@org_slf4j_slf4j_api//jar",
@@ -102,13 +193,15 @@ java_binary(
 java_binary(
     name = "coordinator",
     srcs = [MAIN_BASE_PATH % "Coordinator.java"],
-    main_class = "coo.Coordinator",
+    main_class = "org.iota.compass.Coordinator",
     visibility = ["//visibility:public"],
     runtime_deps = COORDINATOR_RUNTIME_DEPS,
     deps = [
         ":common",
         ":conf",
         ":jota",
+        ":signature_source_common",
+        ":signature_source_helper",
         "@com_beust_jcommander//jar",
         "@org_slf4j_slf4j_api//jar",
     ],
@@ -117,12 +210,17 @@ java_binary(
 java_test(
     name = "test_milestone",
     srcs = glob(["src/test/java/**/*.java"]),
-    test_class = "MilestoneTest",
+    flaky = True,
+    test_class = "org.iota.compass.MilestoneTest",
     deps = [
-        ":address_generator",
         ":common",
+        ":conf",
         ":jota",
-        ":merkle_tree_calculator",
+        ":layers_calculator",
+        ":signature_source_common",
+        ":signature_source_inmemory",
+        ":signature_source_remote",
+        ":signature_source_server",
         "@com_google_guava_guava//jar",
         "@junit_junit//jar",
     ],

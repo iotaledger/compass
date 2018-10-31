@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "org.iota.compass.proto";
+option java_outer_classname = "SignatureSourceProto";
+
+package org.iota.compass.proto;
+
+enum SignatureMode {
+    CURLP27 = 0;
+    CURLP81 = 1;
+    KERL = 2;
+}
+
+message GetSignatureRequest {
+    uint64 index = 1;
+    string hash = 2;
+}
+
+message GetSignatureResponse {
+    string signature = 1;
+}
+
+message GetSecurityRequest {
+}
+message GetSecurityResponse {
+    uint32 security = 1;
+}
+
+message GetSignatureModeRequest {
+}
+
+message GetSignatureModeResponse {
+    SignatureMode mode = 1;
+}
+
+message GetAddressRequest {
+    uint64 index = 1;
+}
+message GetAddressResponse {
+    string address = 1;
+}
+
+service SignatureSource {
+    rpc GetSecurity (GetSecurityRequest) returns (GetSecurityResponse);
+    rpc GetSignatureMode (GetSignatureModeRequest) returns (GetSignatureModeResponse);
+    rpc GetSignature (GetSignatureRequest) returns (GetSignatureResponse);
+    // Note that implementation of this method is optional.
+    rpc GetAddress (GetAddressRequest) returns (GetAddressResponse);
+}

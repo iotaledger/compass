@@ -23,7 +23,7 @@
  *     https://www.iota.org/
  */
 
-package coo.crypto;
+package org.iota.compass.crypto;
 
 import jota.pow.ICurl;
 import jota.pow.JCurl;
@@ -41,7 +41,7 @@ public class ISS {
   private static final int MIN_TRIT_VALUE = -1, MAX_TRIT_VALUE = 1;
   private static final int MIN_TRYTE_VALUE = -13, MAX_TRYTE_VALUE = 13;
 
-  public static int[] subseed(SpongeFactory.Mode mode, final int[] seed, int index) {
+  public static int[] subseed(SpongeFactory.Mode mode, final int[] seed, long index) {
 
     if (index < 0) {
       throw new RuntimeException("Invalid subseed index: " + index);

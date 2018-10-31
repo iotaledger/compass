@@ -23,16 +23,15 @@
  *     https://www.iota.org/
  */
 
-package coo;
+package org.iota.compass;
 
 import com.beust.jcommander.JCommander;
-import coo.conf.Configuration;
 import jota.IotaAPI;
 import jota.dto.response.GetNodeInfoResponse;
 import jota.dto.response.GetTransactionsToApproveResponse;
 import jota.error.ArgumentException;
 import jota.model.Transaction;
-import jota.pow.SpongeFactory;
+import org.iota.compass.conf.CoordinatorConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,13 +40,11 @@ import java.net.URL;
 import java.util.List;
 
 public class Coordinator {
+  private static final Logger log = LoggerFactory.getLogger(Coordinator.class);
   private final URL node;
   private final MilestoneSource db;
   private final IotaAPI api;
-  private final Configuration config;
-
-  private static final Logger log = LoggerFactory.getLogger(Coordinator.class);
-
+  private final CoordinatorConfiguration config;
   private int latestMilestone;
   private String latestMilestoneHash;
   private long latestMilestoneTime;
@@ -55,12 +52,12 @@ public class Coordinator {
   private long milestoneTick;
   private int depth;
 
-  public Coordinator(Configuration config) throws IOException {
+  public Coordinator(CoordinatorConfiguration config, SignatureSource signatureSource) throws IOException {
     this.config = config;
     this.node = new URL(config.host);
 
-    this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.powMode),
-            SpongeFactory.Mode.valueOf(config.sigMode), config.layersPath, config.seed, config.security);
+    this.db = new MilestoneDatabase(config.powMode,
+        signatureSource, config.layersPath);
     this.api = new IotaAPI.Builder()
         .protocol(this.node.getProtocol())
         .host(this.node.getHost())
@@ -69,13 +66,15 @@ public class Coordinator {
   }
 
   public static void main(String[] args) throws Exception {
-    Configuration config = new Configuration();
+    CoordinatorConfiguration config = new CoordinatorConfiguration();
+
     JCommander.newBuilder()
         .addObject(config)
+        .acceptUnknownOptions(true)
         .build()
         .parse(args);
 
-    Coordinator coo = new Coordinator(config);
+    Coordinator coo = new Coordinator(config, SignatureSourceHelper.signatureSourceFromArgs(config.signatureSource, args));
     coo.setup();
     coo.start();
   }

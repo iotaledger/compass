@@ -23,7 +23,7 @@
  *     https://www.iota.org/
  */
 
-package coo;
+package org.iota.compass;
 
 import jota.IotaLocalPoW;
 import jota.pow.ICurl;

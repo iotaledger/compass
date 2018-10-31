@@ -23,20 +23,17 @@
  *     https://www.iota.org/
  */
 
-package coo.shadow;
+package org.iota.compass;
 
 import com.beust.jcommander.JCommander;
-import coo.MilestoneDatabase;
-import coo.MilestoneSource;
-import coo.conf.ShadowingConfiguration;
-import coo.crypto.Hasher;
 import jota.IotaAPI;
 import jota.dto.response.GetNodeInfoResponse;
 import jota.dto.response.GetTransactionsToApproveResponse;
 import jota.error.ArgumentException;
 import jota.model.Transaction;
-import jota.pow.SpongeFactory;
 import org.apache.commons.lang3.NotImplementedException;
+import org.iota.compass.conf.ShadowingCoordinatorConfiguration;
+import org.iota.compass.crypto.Hasher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +48,7 @@ import java.util.stream.Collectors;
 
 
 /**
- * As opposed to the regular `coo.Coordinator`, this coordinator will issue shadow milestones for an existing list of milestones.
+ * As opposed to the regular `org.iota.compass.Coordinator`, this coordinator will issue shadow milestones for an existing list of milestones.
  * This is useful if you want to migrate an existing Coordinator to a new seed or hashing method.
  * <p>
  * !!! *NOTE* that the IRI node this ShadowingCoordinator talks to should already be configured to use the new Coordinator address !!!
@@ -59,17 +56,17 @@ import java.util.stream.Collectors;
 public class ShadowingCoordinator {
   private final Logger log = LoggerFactory.getLogger(getClass());
 
-  private final ShadowingConfiguration config;
+  private final ShadowingCoordinatorConfiguration config;
   private final IotaAPI api;
   private final URL node;
   private final MilestoneSource db;
   private List<OldMilestone> oldMilestones;
 
-  public ShadowingCoordinator(ShadowingConfiguration config) throws IOException {
+  public ShadowingCoordinator(ShadowingCoordinatorConfiguration config, SignatureSource signatureSource) throws IOException {
     this.config = config;
 
-    this.db = new MilestoneDatabase(SpongeFactory.Mode.valueOf(config.powMode),
-        SpongeFactory.Mode.valueOf(config.sigMode), config.layersPath, config.seed, config.security);
+    this.db = new MilestoneDatabase(config.powMode,
+        signatureSource, config.layersPath);
     this.node = new URL(config.host);
     this.api = new IotaAPI.Builder()
         .protocol(this.node.getProtocol())
@@ -79,13 +76,13 @@ public class ShadowingCoordinator {
   }
 
   public static void main(String[] args) throws Exception {
-    ShadowingConfiguration config = new ShadowingConfiguration();
+    ShadowingCoordinatorConfiguration config = new ShadowingCoordinatorConfiguration();
     JCommander.newBuilder()
         .addObject(config)
         .build()
         .parse(args);
 
-    ShadowingCoordinator coo = new ShadowingCoordinator(config);
+    ShadowingCoordinator coo = new ShadowingCoordinator(config, SignatureSourceHelper.signatureSourceFromArgs(config.signatureSource, args));
     coo.setup();
     coo.start();
   }

@@ -23,18 +23,28 @@
  *     https://www.iota.org/
  */
 
-package coo.conf;
+package org.iota.compass;
 
-import com.beust.jcommander.IParameterValidator;
-import com.beust.jcommander.ParameterException;
+import com.google.common.base.Strings;
+import jota.model.Transaction;
 import jota.pow.SpongeFactory;
 
-public class POWModeValidator implements IParameterValidator {
-  @Override
-  public void validate(String name, String value) throws ParameterException {
-    SpongeFactory.Mode mode = SpongeFactory.Mode.valueOf(value);
-    if (mode != SpongeFactory.Mode.CURLP81 && mode != SpongeFactory.Mode.KERL) {
-      throw new ParameterException("Invalid mode provided for PoW.");
-    }
-  }
+import java.util.List;
+
+public abstract class MilestoneSource {
+  public final static String EMPTY_HASH = Strings.repeat("9", 81);
+  public final static String EMPTY_TAG = Strings.repeat("9", 27);
+  public final static String EMPTY_MSG = Strings.repeat("9", 27 * 81);
+
+  /**
+   * @return the merkle tree root backed by this `MilestoneSource`
+   */
+  public abstract String getRoot();
+
+  /**
+   * @return the sponge mode used by this `MilestoneSource` for performing proof of work
+   */
+  public abstract SpongeFactory.Mode getPoWMode();
+
+  public abstract List<Transaction> createMilestone(String trunk, String branch, int index, int mwm);
 }

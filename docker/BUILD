@@ -1,18 +1,10 @@
 load("@io_bazel_rules_docker//container:container.bzl", "container_image")
 
 container_image(
-    name = "address_generator",
+    name = "layers_calculator",
     base = "@java_base//image",
-    cmd = ["address_generator_deploy.jar"],
-    files = ["//:address_generator_deploy.jar"],
-    repository = "iota/compass",
-)
-
-container_image(
-    name = "merkle_tree_calculator",
-    base = "@java_base//image",
-    cmd = ["merkle_tree_calculator_deploy.jar"],
-    files = ["//:merkle_tree_calculator_deploy.jar"],
+    cmd = ["layers_calculator_deploy.jar"],
+    files = ["//:layers_calculator_deploy.jar"],
     repository = "iota/compass",
 )
 
@@ -29,5 +21,13 @@ container_image(
     base = "@java_base//image",
     cmd = ["shadowing_coordinator_deploy.jar"],
     files = ["//:shadowing_coordinator_deploy.jar"],
+    repository = "iota/compass",
+)
+
+container_image(
+    name = "signature_source_server",
+    base = "@java_base//image",
+    cmd = ["signature_source_server_deploy.jar"],
+    files = ["//:signature_source_server_deploy.jar"],
     repository = "iota/compass",
 )

@@ -23,30 +23,19 @@
  *     https://www.iota.org/
  */
 
-import java.security.SecureRandom;
-import java.util.Random;
+package org.iota.compass.conf;
 
-public class TestUtil {
+import com.beust.jcommander.Parameter;
+import jota.pow.SpongeFactory;
 
-  public static final String ALPHABET = "9ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  public static final int randomnessSeed = 1;
-  public static final Random random = new SecureRandom();
+public class InMemorySignatureSourceConfiguration {
+  @Parameter(names = "-seed", description = "Seed", required = true)
+  public String seed;
 
-  {
-    //for deterministic testing
-    random.setSeed(randomnessSeed);
-  }
+  @Parameter(names = "-sigMode", description = "Sponge mode to use for signature creation (one of CURLP27, CURLP81, KERL)",
+      required = true, converter = SpongeModeConverter.class)
+  public SpongeFactory.Mode sigMode = SpongeFactory.Mode.CURLP27;
 
-  public static String nextSeed() {
-    return nextTrytes(81);
-  }
-
-  public static String nextTrytes(int count) {
-    char[] buf = new char[count];
-
-    for (int idx = 0; idx < buf.length; ++idx)
-      buf[idx] = ALPHABET.charAt(random.nextInt(ALPHABET.length()));
-
-    return new String(buf);
-  }
+  @Parameter(names = "-security", description = "Security level to use. Value must be in [1;3]")
+  public Integer security = 1;
 }

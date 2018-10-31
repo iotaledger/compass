@@ -23,12 +23,12 @@
  *     https://www.iota.org/
  */
 
-package coo.conf;
+package org.iota.compass.conf;
 
 import com.beust.jcommander.Parameter;
-import coo.MilestoneSource;
+import org.iota.compass.MilestoneSource;
 
-public class ShadowingConfiguration extends BaseConfiguration {
+public class ShadowingCoordinatorConfiguration extends BaseConfiguration {
   @Parameter(names = "-milestonesCSV", description = "csv (index, tail) of old milestones")
   public String milestonesCSV;
 

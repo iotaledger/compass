@@ -23,33 +23,18 @@
  *     https://www.iota.org/
  */
 
-package coo;
+package org.iota.compass.conf;
 
-import com.google.common.base.Strings;
-import jota.model.Transaction;
-import jota.pow.SpongeFactory;
+import com.beust.jcommander.Parameter;
+import org.iota.compass.SignatureSourceType;
 
-import java.util.List;
+public class LayersCalculatorConfiguration {
+  @Parameter(names = "-layers", description = "Path to folder where Merkle Tree layers will be written to", required = true)
+  public String layersPath;
 
-public abstract class MilestoneSource {
-  public final static String EMPTY_HASH = Strings.repeat("9", 81);
-  public final static String EMPTY_TAG = Strings.repeat("9", 27);
-  public final static String EMPTY_MSG = Strings.repeat("9", 27 * 81);
+  @Parameter(names = "-depth", description = "Depth the resulting merkle tree", required = true)
+  public int depth;
 
-  /**
-   * @return the merkle tree root backed by this `MilestoneSource`
-   */
-  public abstract String getRoot();
-
-  /**
-   * @return the sponge mode used by this `MilestoneSource` for creating signatures
-   */
-  public abstract SpongeFactory.Mode getSignatureMode();
-
-  /**
-   * @return the sponge mode used by this `MilestoneSource` for performing proof of work
-   */
-  public abstract SpongeFactory.Mode getPoWMode();
-
-  public abstract List<Transaction> createMilestone(String trunk, String branch, int index, int mwm);
+  @Parameter(names = "-signatureSource", description = "Signature source type (can be 'inmemory' or 'remote')", converter = SignatureSourceTypeConverter.class)
+  public SignatureSourceType signatureSource = SignatureSourceType.INMEMORY;
 }

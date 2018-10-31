@@ -23,30 +23,23 @@
  *     https://www.iota.org/
  */
 
-package coo.conf;
+package org.iota.compass.conf;
 
 import com.beust.jcommander.Parameter;
 
-public class Configuration extends BaseConfiguration {
-  @Parameter(names = "-bootstrap", description = "Bootstrap network")
-  public boolean bootstrap = false;
+public class RemoteSignatureSourceConfiguration {
+  @Parameter(names = "-remoteURI", description = "URI for remote signature source", required = true)
+  public String uri;
 
-  @Parameter(names = "-tick", description = "Milestone tick in milliseconds", required = true)
-  public int tick = 15000;
+  @Parameter(names = "-remotePlaintext", description = "Whether to communicate with signatureSource in plaintext")
+  public boolean plaintext = false;
 
-  @Parameter(names = "-depth", description = "Starting depth")
-  public int depth = 3;
+  @Parameter(names = "-remoteTrustCertCollection", description = "Path to trust cert collection for encrypted connection to remote signature source server")
+  public String trustCertCollection = null;
 
-  @Parameter(names = "-depthScale", description = "Time scale factor for depth decrease")
-  public float depthScale = 1.01f;
+  @Parameter(names = "-remoteClientCertChain", description = "Path to client certificate chain to use for authenticating to the remote signature source server")
+  public String clientCertChain = null;
 
-  @Parameter(names = "-unsolidDelay", description = "Delay if node is not solid in milliseconds")
-  public int unsolidDelay = 5000;
-
-  @Parameter(names = "-inception", description = "Only use this if you know what you're doing.")
-  public boolean inception = false;
-
-  @Parameter(names = "-index", description = "Starting milestone index (inclusive)")
-  public Integer index;
-
+  @Parameter(names = "-remoteClientKey", description = "Path to private key to use for authenticating to the remote signature source server")
+  public String clientKey = null;
 }

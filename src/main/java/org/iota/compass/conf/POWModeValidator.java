@@ -23,35 +23,18 @@
  *     https://www.iota.org/
  */
 
-package coo.crypto;
+package org.iota.compass.conf;
 
-import jota.pow.ICurl;
-import jota.pow.JCurl;
+import com.beust.jcommander.IValueValidator;
+import com.beust.jcommander.ParameterException;
 import jota.pow.SpongeFactory;
-import jota.utils.Converter;
 
-/**
- *
- */
-public class Hasher {
-  /**
-   * Hashes a provided Tryte string using the given method
-   *
-   * @param mode the sponge method to use
-   * @param trytes
-   * @return 81 tryte hash
-   */
-  public static String hashTrytes(SpongeFactory.Mode mode, String trytes) {
-    return Converter.trytes(hashTrytesToTrits(mode, trytes));
-  }
+public class POWModeValidator implements IValueValidator<SpongeFactory.Mode> {
 
-  public static int[] hashTrytesToTrits(SpongeFactory.Mode mode, String trytes) {
-    int[] hash = new int[JCurl.HASH_LENGTH];
-
-    ICurl sponge = SpongeFactory.create(mode);
-    sponge.absorb(Converter.trits(trytes));
-    sponge.squeeze(hash);
-
-    return hash;
+  @Override
+  public void validate(String s, SpongeFactory.Mode mode) throws ParameterException {
+    if (mode != SpongeFactory.Mode.CURLP81 && mode != SpongeFactory.Mode.KERL) {
+      throw new ParameterException("Invalid mode provided for PoW. Must be CURLP81 or KERL.");
+    }
   }
 }
