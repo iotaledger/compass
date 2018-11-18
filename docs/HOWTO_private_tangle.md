@@ -89,6 +89,7 @@ This allocates all token supply to seed `SEED99999999999999999999999999999999999
 ## Step 2: Setting up the Coordinator
 The Coordinator uses Java to run. These instructions assume that you have already setup [bazel](https://bazel.build) on 
 your system and installed the `//docker:coordinator` and `//docker:layers_calculator` images. The relevant scripts are inside the `private_tangle` folder.
+**The scripts assume that they are in the same folder as the `config.json` file and data folders.**
 
 ### Bootstrapping the Coordinator
 We now need to bootstrap the Coordinator milestone merkle tree. 
@@ -103,10 +104,13 @@ We now need to bootstrap the Coordinator milestone merkle tree.
    `COOSEED99999999999999999999999999999999999999999999999999999999999999999999999999`. 
 
 2. Decide on the depth of the coordinator. 
+
    The higher the number, the more milestones can be issued: At depth 18, = ~260 thousand milestones, 
    20 = ~1 million milestones, 21 = ~2 million milestones – or more precisely 2^DEPTH. 
+
    For this exercise, we use depth 8 — allowing 256 milestones to be issued. 
-   Keep in mind this process is highly CPU intensive. For example, generating a depth 20 tree on a 64 CPU server takes about 1 hour.
+
+   **Keep in mind this process is highly CPU intensive. For example, generating a depth 20 tree on a 64 CPU server takes about 1 hour.**
 3. Copy the `config.example.json` file to `config.json` and alter its contents (specifying correct depth & seed).
 4. Run the layer calculator via `./01_calculate_layers.sh` from the `private_tangle` folder.
 5. After completing execution, the LayersCalculator will tell you the root of the generated merkle tree. *This is the Coordinator's address*. 
@@ -180,8 +184,7 @@ The IRI node is now running but it has not received its first milestone. We need
 We suggest at this stage to have two terminals open on your server. One with journalctl or equivalent looking at its logs and one running the following commands:
 
 ```
-cd docs/private_tangle
-./02_run_coordinator -bootstrap -broadcast
+./02_run_coordinator.sh -bootstrap -broadcast
 ```
 
 Let this command run until you see output similar to:
@@ -191,6 +194,6 @@ Let this command run until you see output similar to:
 ```
 
 For future runs, you no longer need to provide the `-bootstrap` parameter (the Coordinator actually won't start with it).
-A new milestone will be issued by the COO every 60 seconds (set by `-tick 60000` in the `config.json`). 
+A new milestone will be issued by the COO every 60 seconds (set by `"tick": 60000` in the `config.json`). 
 
 You now have a working Private Tangle.
