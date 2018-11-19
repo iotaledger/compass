@@ -7,86 +7,16 @@ A private Tangle can consist of a single IRI instance. The instructions below wi
 
 ### The components
 - IRI — IOTA Reference Implementation — software
-- A custom `iota.ini` file
 - A custom snapshot file — genesis
 - The Coordinator (COO)
+- The scripts in `docs/private_tangle`
 
 ## Important things to note
 The instructions below do not consider all individual circumstances of your setup. They are meant to give you an understanding on how to bootstrap your own Private Tangle on a 1 node network topology. More complex setups can be achieved by running more IRI nodes interconnected between each other.
 
 If you prefer to use Docker to set up IRI instances, we provide [IRI docker containers](https://hub.docker.com/r/iotaledger/iri/). We recommend adapting the instructions below by following the [IRI Docker instructions](https://github.com/iotaledger/iri/blob/dev/DOCKER.md).
 
-## Step 1: Create the IRI node
-IRI is an open source, Java reference implementation of the IOTA protocol. The development of IRI is supported by the IOTA Foundation.
-
-Dedicate a Linux server as an IRI node. The server requirements are low, we recommend the following for a better experience:
-
-- VPS or bare metal
-- 4 CPUs (or virtual CPUs)
-- 8GB RAM
-- SSD drive with at least 10GB – highly dependent on how much data you wish to store
-- Virtually any Linux distribution, as long as Oracle Java 8 can be installed and run. We recommend Ubuntu Linux and this guide assumes it’s Ubuntu Linux.
-We define a directory where all IRI data and configuration will be stored. Let’s call it `/iri`
-
-```bash
-mkdir /iri
-```
-
-Download the latest IRI from GitHub. You can always find the latest release at the [release page](https://github.com/iotaledger/iri/releases/latest).
-
-```bash
-cd /iri
-wget https://github.com/iotaledger/iri/releases/download/<version>/<jar file version>.jar 
-```
-
-Replace `version` and `jar file version` with the latest version, for example, `v1.5.5` and `iri-1.5.5`. For example, IRI 1.5.5: 
-`https://github.com/iotaledger/iri/releases/download/v1.5.5/iri-1.5.5.jar` 
-
-#### Install Oracle Java 8 JRE
-
-Only Java 8 JRE is supported at the moment. Newer versions of Java JRE may not work as expected. 
-
-```
-add-apt-repository ppa:webupd8team/java
-apt-get update
-apt-get install oracle-java8-installer
-```
-
-#### Configure IRI
-
-```
-mkdir /iri/conf
-```
-
-Create a file `/iri/conf/iota.ini` with your editor of choice and paste the following text
-
-```yaml
-[IRI]
-ZMQ_ENABLED = TRUE
-TESTNET = TRUE
-MWM = 9
-SNAPSHOT_FILE = /iri/conf/snapshot.txt
-COORDINATOR = "coordinator address value" //TODO update with Coordinator address in a later step.
-MILESTONE_START_INDEX = 2
-NUMBER_OF_KEYS_IN_A_MILESTONE = 8
-MAX_DEPTH = 1000
-```
-
-- `MAX_DEPTH = 1000` - only required on the node where the COO will be issuing milestones. If you are creating more than one IRI node, we recommend you remove this option from their `iota.ini` file.
-- `MWM = 9` - sets the minimum weight magnitude (MWM) required by a client when performing proof-of-work (PoW). The minimum value that can be configured is 9. A value lower than that requires code changes in the network stack. Keep in mind that an MWM of 9 requires a negligible amount of PoW, so we do not expect any requirement to lower it further. For comparison, the IOTA Mainnet Network uses `MWM = 14`.
-- `COORDINATOR` - we will bootstrap the coordinator in **Step 2** and replace the setting value with the correct value.
-- `NUMBER_OF_KEYS_IN_A_MILESTONE = 8` - see **Step 2** for context
-
-#### Create custom genesis
-Create a custom genesis `snapshot.txt` file and place it in the `/iri/conf` folder of the main node (the node that will be issuing milestones).  
-
-Here's an **example** one:
-```yaml
-WYF9OOFCQJRTLTRMREDWPOBQ9KNDMFVZSROZVXACAWKUMXAIYTFQCPAYZHNGKIWZZGKCSHSSTRDHDAJCW;2779530283277761
-```
-This allocates all token supply to seed `SEED99999999999999999999999999999999999999999999999999999999999999999999999999999`
-
-## Step 2: Setting up the Coordinator
+## Step 1: Setting up the Coordinator
 The Coordinator uses Java to run. These instructions assume that you have already setup [bazel](https://bazel.build) on 
 your system and installed the `//docker:coordinator` and `//docker:layers_calculator` images. The relevant scripts are inside the `private_tangle` folder.
 **The scripts assume that they are in the same folder as the `config.json` file and data folders.**
@@ -103,7 +33,7 @@ We now need to bootstrap the Coordinator milestone merkle tree.
    The output of the command above will be a random string of 81 chars, all capital letters, such as this:
    `COOSEED99999999999999999999999999999999999999999999999999999999999999999999999999`. 
 
-2. Decide on the depth of the coordinator. 
+2. Decide on the depth of the Coordinator. 
 
    The higher the number, the more milestones can be issued: At depth 18, = ~260 thousand milestones, 
    20 = ~1 million milestones, 21 = ~2 million milestones – or more precisely 2^DEPTH. 
@@ -114,51 +44,43 @@ We now need to bootstrap the Coordinator milestone merkle tree.
 3. Copy the `config.example.json` file to `config.json` and alter its contents (specifying correct depth & seed).
 4. Run the layer calculator via `./01_calculate_layers.sh` from the `private_tangle` folder.
 5. After completing execution, the LayersCalculator will tell you the root of the generated merkle tree. *This is the Coordinator's address*. 
-   You should now fill this in in the `iota.ini` file: Replace the placeholder `"coordinator address value"` value in the `COORDINATOR` option with the copied COO address.
 
-## Step 3: Running the Node
-It’s time to start the node. The following step assumes you are running with Ubuntu or any other Linux distribution that uses `systemd`.
- Please refer to your distribution documentation if you have another init/service manager.
+## Step 2: Running the IRI node
+IRI is an open source, Java reference implementation of the IOTA protocol. The development of IRI is supported by the IOTA Foundation.
 
-Create an IRI systemd unit by creating the following file: `/etc/systemd/system/iri.service` 
+Dedicate a Linux server as an IRI node. The server requirements are low, we recommend the following for a better experience:
 
-And populate it with the following text:
+- VPS or bare metal
+- 4 CPUs (or virtual CPUs)
+- 8GB RAM
+- SSD drive with at least 10GB – highly dependent on how much data you wish to store
+- Virtually any Linux distribution, as long as Docker is available. We recommend Ubuntu Linux and this guide assumes it’s Ubuntu Linux.
 
-```systemd
-[Unit]
+The script assumes that the DB will be stored in the same path as the script. 
 
-Description=IRI
-[Service]
-WorkingDirectory=/iri
-TimeoutStartSec=0
-Restart=always
-ExecStart=/usr/bin/java \
--Xms1G -Xmx6G \
--Djava.net.preferIPv4Stack=true \
--jar <jar file value> \
--c conf/iota.ini \
--p 14265 
+If you look inside the script, here's some of those parameters explaned:
 
-[Install]
-WantedBy=multi-user.target 
+- `--testnet-coordinator $COO_ADDRESS` - the Coordinator address that IRI listens on
+- `--mwm` (e.g. `9`) - sets the minimum weight magnitude (MWM) required by a client when performing proof-of-work (PoW). The minimum value that can be configured is 9. A value lower than that requires code changes in the network stack. Keep in mind that an MWM of 9 requires a negligible amount of PoW, so we do not expect any requirement to lower it further. For comparison, the IOTA Mainnet Network uses `MWM = 14`. The file is read from the config file.
+- `--max-depth` (e.g. `1000`)- only required on the node where the COO will be issuing milestones. If you are creating more than one IRI node, this is not necessary.
+- `--milestone-start` (e.g. `1`) - the lower milestone index bound that IRI uses
+- `--milestone-keys` - see the description of `depth` further above
+- `--packet-size` - How large the IOTA network packet is, we usually don't transmit unused request hash trits to save some bytes on the wire
+- `--request-hash-size` - How large the request hash inside the pakcet is
+- `--snapshot` - the file containing the private tangle's current snapshot information
+
+### Create custom genesis
+Create a custom genesis `snapshot.txt` file and place it in the same folder as the script.
+
+Here's an **example** one:
+```yaml
+WYF9OOFCQJRTLTRMREDWPOBQ9KNDMFVZSROZVXACAWKUMXAIYTFQCPAYZHNGKIWZZGKCSHSSTRDHDAJCW;2779530283277761
 ```
-Replace the `<jar file value>` in the `jar` option with the name of the IRI file you downloaded. For example, `iri-1.5.5.jar`.
+This allocates all token supply to seed `SEED99999999999999999999999999999999999999999999999999999999999999999999999999999`
 
-IMPORTANT: The `systemd` unit above includes hardcoded Java memory settings. Please remember to change them according to your server specifications. The setting above assumes a server has 4GB of RAM and Java can use only up to 3GB.
-
+### Start IRI
 ```
-systemctl daemon-reload
-```
-
-Start the IRI node.
-```
-systemctl start iri.service
-```
-
-You can check the IRI logs via journalctl (assuming you are on Ubuntu)
-
-```
-journalctl -u iri.service -f
+./docs/02_run_iri.sh
 ```
 
 ### IRI node explained
@@ -178,13 +100,12 @@ curl -s http://localhost:14265 -X POST -H 'X-IOTA-API-Version: 1' -H 'Content-Ty
 
 Please refer to https://iota.readme.io/reference for all HTTP IRI API commands available. 
 
-
-## Step 4: Starting the Coordinator
+## Step 3: Running the Coordinator
 The IRI node is now running but it has not received its first milestone. We need to bootstrap the Tangle. 
 We suggest at this stage to have two terminals open on your server. One with journalctl or equivalent looking at its logs and one running the following commands:
 
 ```
-./02_run_coordinator.sh -bootstrap -broadcast
+./03_run_coordinator.sh -bootstrap -broadcast
 ```
 
 Let this command run until you see output similar to:
@@ -194,6 +115,8 @@ Let this command run until you see output similar to:
 ```
 
 For future runs, you no longer need to provide the `-bootstrap` parameter (the Coordinator actually won't start with it).
+The `-broadcast` flag, however, is required as a security measure that the Coordinator should actually broadcast its milestones to IRI.
+
 A new milestone will be issued by the COO every 60 seconds (set by `"tick": 60000` in the `config.json`). 
 
 You now have a working Private Tangle.
