@@ -61,12 +61,10 @@ The script assumes that the DB will be stored in the same path as the script.
 If you look inside the script, here's some of those parameters explaned:
 
 - `--testnet-coordinator $COO_ADDRESS` - the Coordinator address that IRI listens on
-- `--mwm` (e.g. `9`) - sets the minimum weight magnitude (MWM) required by a client when performing proof-of-work (PoW). The minimum value that can be configured is 9. A value lower than that requires code changes in the network stack. Keep in mind that an MWM of 9 requires a negligible amount of PoW, so we do not expect any requirement to lower it further. For comparison, the IOTA Mainnet Network uses `MWM = 14`. The file is read from the config file.
-- `--max-depth` (e.g. `1000`)- only required on the node where the COO will be issuing milestones. If you are creating more than one IRI node, this is not necessary.
-- `--milestone-start` (e.g. `1`) - the lower milestone index bound that IRI uses
+- `--mwm` (e.g. `9`) - sets the minimum weight magnitude (MWM) required by a client when performing proof-of-work (PoW). Keep in mind that an MWM of 9 requires a negligible amount of PoW. For comparison, the IOTA Mainnet Network uses `MWM = 14`. 
+- `--max-depth` (e.g. `1000`) - only required on the node where the COO will be issuing milestones. If you are creating more than one IRI node, this is not necessary.
+- `--milestone-start` (e.g. `1`) - the lowest milestone index that IRI uses
 - `--milestone-keys` - see the description of `depth` further above
-- `--packet-size` - How large the IOTA network packet is, we usually don't transmit unused request hash trits to save some bytes on the wire
-- `--request-hash-size` - How large the request hash inside the pakcet is
 - `--snapshot` - the file containing the private tangle's current snapshot information
 
 ### Create custom genesis
