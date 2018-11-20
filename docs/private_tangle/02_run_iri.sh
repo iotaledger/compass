@@ -14,6 +14,7 @@ docker run -t --net host --rm -v $scriptdir/db:/iri/data -v $scriptdir/snapshot.
        --testnet-coordinator $COO_ADDRESS \
        --mwm $mwm \
        --milestone-start $milestoneStart \
+       --milestone-keys $depth \
        --snapshot /snapshot.txt \
        --max-depth 1000 $@
 
