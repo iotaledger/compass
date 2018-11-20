@@ -78,7 +78,7 @@ This allocates all token supply to seed `SEED99999999999999999999999999999999999
 
 ### Start IRI
 ```
-./docs/02_run_iri.sh
+./02_run_iri.sh
 ```
 
 ### IRI node explained
