@@ -10,9 +10,9 @@ java_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//third-party/jota",
         "@com_google_guava_guava//jar",
         "@org_bouncycastle_bcprov_jdk15on//jar",
+        "@org_iota_jota//jar",
         "@org_slf4j_slf4j_api//jar",
     ],
 )

@@ -5,9 +5,9 @@ java_library(
     deps = [
         "//compass/milestone",
         "//compass/sign:common",
-        "//third-party/jota",
         "@com_beust_jcommander//jar",
         "@com_google_guava_guava//jar",
         "@junit_junit//jar",
+        "@org_iota_jota//jar",
     ],
 )

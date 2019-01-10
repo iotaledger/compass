@@ -132,7 +132,7 @@ public class Coordinator {
   /**
    * Sets up the coordinator and validates arguments
    */
-  private void setup() {
+  private void setup() throws ArgumentException {
     log.info("Setup");
     GetNodeInfoResponse nodeInfoResponse = api.getNodeInfo();
 
@@ -214,7 +214,7 @@ public class Coordinator {
 
       if (config.broadcast) {
         for (Transaction tx : txs) {
-          api.broadcastAndStore(tx.toTrytes());
+          api.storeAndBroadcast(tx.toTrytes());
         }
         log.info("Broadcasted milestone.");
       }

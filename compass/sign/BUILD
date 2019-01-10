@@ -7,7 +7,7 @@ java_library(
     deps = [
         ":common",
         "//compass/crypto",
-        "//third-party/jota",
+        "@org_iota_jota//jar",
         "@org_slf4j_slf4j_api//jar",
     ],
 )
@@ -20,7 +20,6 @@ java_library(
         ":common",
         "//proto:signature_source_java_grpc",
         "//proto:signature_source_java_proto",
-        "//third-party/jota",
         "@com_google_api_grpc_proto_google_common_protos//jar",
         "@com_google_code_findbugs_jsr305//jar",
         "@com_google_guava_guava//jar",
@@ -32,6 +31,7 @@ java_library(
         "@io_grpc_grpc_java//protobuf",
         "@io_grpc_grpc_java//stub",
         "@io_netty_netty_handler//jar",
+        "@org_iota_jota//jar",
         "@org_slf4j_slf4j_api//jar",
     ],
 )
@@ -44,7 +44,7 @@ java_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//third-party/jota",
+        "@org_iota_jota//jar",
     ],
 )
 
@@ -76,7 +76,6 @@ java_binary(
         "//compass/crypto",
         "//proto:signature_source_java_grpc",
         "//proto:signature_source_java_proto",
-        "//third-party/jota",
         "@com_beust_jcommander//jar",
         "@com_google_api_grpc_proto_google_common_protos//jar",
         "@com_google_code_findbugs_jsr305//jar",
@@ -89,6 +88,7 @@ java_binary(
         "@io_grpc_grpc_java//protobuf",
         "@io_grpc_grpc_java//stub",
         "@io_netty_netty_handler//jar",
+        "@org_iota_jota//jar",
         "@org_slf4j_slf4j_api//jar",
     ],
 )

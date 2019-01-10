@@ -13,9 +13,9 @@ java_binary(
         "//compass/milestone",
         "//compass/sign:common",
         "//compass/sign:helper",
-        "//third-party/jota",
         "@com_beust_jcommander//jar",
         "@com_google_guava_guava//jar",
+        "@org_iota_jota//jar",
         "@org_slf4j_slf4j_api//jar",
     ],
 )
@@ -32,9 +32,9 @@ java_binary(
         "//compass/milestone",
         "//compass/sign:common",
         "//compass/sign:helper",
-        "//third-party/jota",
         "@com_beust_jcommander//jar",
         "@org_apache_commons_commons_lang3//jar",
+        "@org_iota_jota//jar",
         "@org_slf4j_slf4j_api//jar",
     ],
 )
@@ -50,8 +50,8 @@ java_binary(
         "//compass/milestone",
         "//compass/sign:common",
         "//compass/sign:helper",
-        "//third-party/jota",
         "@com_beust_jcommander//jar",
+        "@org_iota_jota//jar",
         "@org_slf4j_slf4j_api//jar",
     ],
 )

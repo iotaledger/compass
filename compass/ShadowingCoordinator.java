@@ -126,7 +126,7 @@ public class ShadowingCoordinator {
     log.info("Collected {} transactions for broadcast.", transactions.size());
 
     if (config.broadcast) {
-      api.broadcastAndStore(transactions.stream().map(Transaction::toTrytes).toArray(String[]::new));
+      api.storeAndBroadcast(transactions.stream().map(Transaction::toTrytes).toArray(String[]::new));
       log.info("Broadcasted {} transactions.", transactions.size());
     } else {
       log.info("Skipping broadcast.");

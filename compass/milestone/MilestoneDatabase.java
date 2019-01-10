@@ -25,13 +25,13 @@
 
 package org.iota.compass;
 
-import cfb.pearldiver.PearlDiverLocalPoW;
 import com.google.common.base.Strings;
 import jota.IotaLocalPoW;
 import jota.model.Bundle;
 import jota.model.Transaction;
 import jota.pow.ICurl;
 import jota.pow.SpongeFactory;
+import jota.pow.pearldiver.PearlDiverLocalPoW;
 import jota.utils.Converter;
 import org.iota.compass.crypto.Hasher;
 import org.iota.compass.crypto.ISS;

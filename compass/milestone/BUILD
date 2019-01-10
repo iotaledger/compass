@@ -10,9 +10,9 @@ java_library(
     deps = [
         "//compass/crypto",
         "//compass/sign:common",
-        "//third-party/jota",
         "@com_google_guava_guava//jar",
         "@org_bouncycastle_bcprov_jdk15on//jar",
+        "@org_iota_jota//jar",
         "@org_slf4j_slf4j_api//jar",
     ],
 )
@@ -32,8 +32,8 @@ java_test(
         "//compass/sign:remote",
         "//compass/sign:server",
         "//compass/test",
-        "//third-party/jota",
         "@com_google_guava_guava//jar",
         "@junit_junit//jar",
+        "@org_iota_jota//jar",
     ],
 )
