@@ -1,5 +1,9 @@
 COORDINATOR_RUNTIME_DEPS = [
     "@org_slf4j_slf4j_simple//jar",
+    "@com_squareup_okhttp3_okhttp//jar",
+    "@com_squareup_retrofit2_converter_gson//jar",
+    "@com_squareup_retrofit2_retrofit//jar",
+    "@com_squareup_okio_okio//jar",
 ]
 
 java_binary(
@@ -7,7 +11,7 @@ java_binary(
     srcs = ["LayersCalculator.java"],
     main_class = "org.iota.compass.LayersCalculator",
     visibility = ["//visibility:public"],
-    runtime_deps = ["@org_slf4j_slf4j_simple//jar"],
+    runtime_deps = COORDINATOR_RUNTIME_DEPS,
     deps = [
         "//compass/conf",
         "//compass/milestone",
