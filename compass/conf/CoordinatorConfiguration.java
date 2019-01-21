@@ -27,6 +27,8 @@ package org.iota.compass.conf;
 
 import com.beust.jcommander.Parameter;
 
+import java.util.List;
+
 public class CoordinatorConfiguration extends BaseConfiguration {
   @Parameter(names = "-bootstrap", description = "Bootstrap network")
   public boolean bootstrap = false;
@@ -48,5 +50,8 @@ public class CoordinatorConfiguration extends BaseConfiguration {
 
   @Parameter(names = "-index", description = "Starting milestone index (inclusive)")
   public Integer index;
+
+  @Parameter(names = "-validator", description = "Validator nodes to use")
+  public List<String> validators;
 
 }
