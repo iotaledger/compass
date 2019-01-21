@@ -220,11 +220,14 @@ public class Coordinator {
             CheckConsistencyResponse response = null;
             try {
               response = api.checkConsistency(trunk, branch);
+              if(!response.getState()) {
+                log.error("{} reported invalid consistency: {}", api.getHost(), response.getInfo());
+              }
+              return response.getState();
             } catch (ArgumentException e) {
               e.printStackTrace();
               return false;
             }
-            return response.getState();
           }).reduce(true, (a, b) -> a && b);
 
           if (!isConsistent) {
