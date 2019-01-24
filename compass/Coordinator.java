@@ -228,7 +228,7 @@ public class Coordinator {
               e.printStackTrace();
               return false;
             }
-          }).reduce(true, (a, b) -> a && b);
+          }).allMatch(a -> a == true);
 
           if (!isConsistent) {
             String msg = "Trunk & branch were not consistent!!! T: " + trunk + " B: " + branch;
