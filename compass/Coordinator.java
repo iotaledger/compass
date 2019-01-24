@@ -27,6 +27,7 @@ package org.iota.compass;
 
 import com.beust.jcommander.JCommander;
 import jota.IotaAPI;
+import jota.dto.response.CheckConsistencyResponse;
 import jota.dto.response.GetNodeInfoResponse;
 import jota.dto.response.GetTransactionsToApproveResponse;
 import jota.error.ArgumentException;
@@ -36,8 +37,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Coordinator {
   private static final Logger log = LoggerFactory.getLogger(Coordinator.class);
@@ -48,6 +51,7 @@ public class Coordinator {
   private int latestMilestone;
   private String latestMilestoneHash;
   private long latestMilestoneTime;
+  private List<IotaAPI> validatorAPIs;
 
   private long milestoneTick;
   private int depth;
@@ -63,6 +67,14 @@ public class Coordinator {
         .host(this.node.getHost())
         .port(Integer.toString(this.node.getPort()))
         .build();
+
+    validatorAPIs = config.validators.stream().map(url -> {
+      URI uri = URI.create(url);
+      return new IotaAPI.Builder().protocol(uri.getScheme())
+          .host(uri.getHost())
+          .port(Integer.toString(uri.getPort()))
+          .build();
+    }).collect(Collectors.toList());
   }
 
   public static void main(String[] args) throws Exception {
@@ -132,7 +144,7 @@ public class Coordinator {
   /**
    * Sets up the coordinator and validates arguments
    */
-  private void setup() {
+  private void setup() throws ArgumentException {
     log.info("Setup");
     GetNodeInfoResponse nodeInfoResponse = api.getNodeInfo();
 
@@ -202,6 +214,30 @@ public class Coordinator {
         GetTransactionsToApproveResponse txToApprove = api.getTransactionsToApprove(depth, nodeInfoResponse.getLatestMilestone());
         trunk = txToApprove.getTrunkTransaction();
         branch = txToApprove.getBranchTransaction();
+
+        if (validatorAPIs.size() > 0) {
+          boolean isConsistent = validatorAPIs.parallelStream().map(api -> {
+            CheckConsistencyResponse response = null;
+            try {
+              response = api.checkConsistency(trunk, branch);
+              if(!response.getState()) {
+                log.error("{} reported invalid consistency: {}", api.getHost(), response.getInfo());
+              }
+              return response.getState();
+            } catch (ArgumentException e) {
+              e.printStackTrace();
+              return false;
+            }
+          }).allMatch(a -> a == true);
+
+          if (!isConsistent) {
+            String msg = "Trunk & branch were not consistent!!! T: " + trunk + " B: " + branch;
+
+            log.error(msg);
+            throw new RuntimeException(msg);
+          }
+
+        }
       }
 
       latestMilestone++;
@@ -214,7 +250,7 @@ public class Coordinator {
 
       if (config.broadcast) {
         for (Transaction tx : txs) {
-          api.broadcastAndStore(tx.toTrytes());
+          api.storeAndBroadcast(tx.toTrytes());
         }
         log.info("Broadcasted milestone.");
       }

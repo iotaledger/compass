@@ -135,6 +135,14 @@ def maven_jars():
         sha1 = "976d8d30bebc251db406f2bdb3eb01962b5685b3",
     )
 
+    # org.iota:jota:1.0.0-beta3
+    native.maven_jar(
+        name = "org_iota_jota",
+        artifact = "org.iota:jota:1.0.0-beta3",
+        repository = "https://jcenter.bintray.com/",
+        sha1 = "ffda9cd4c25bd92ea23503887bfe49115cb5f6b7",
+    )
+
 def maven_libraries():
     native.java_library(
         name = "com_google_code_findbugs_jsr305",
@@ -266,4 +274,10 @@ def maven_libraries():
         name = "com_google_j2objc_j2objc_annotations",
         visibility = ["//visibility:public"],
         exports = ["@com_google_j2objc_j2objc_annotations//jar"],
+    )
+
+    native.java_library(
+        name = "org_iota_jota",
+        visibility = ["//visibility:public"],
+        exports = ["@org_iota_jota//jar"],
     )

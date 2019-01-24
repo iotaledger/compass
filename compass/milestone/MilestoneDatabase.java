@@ -25,13 +25,13 @@
 
 package org.iota.compass;
 
-import cfb.pearldiver.PearlDiverLocalPoW;
 import com.google.common.base.Strings;
 import jota.IotaLocalPoW;
+import jota.model.Bundle;
 import jota.model.Transaction;
 import jota.pow.ICurl;
-import jota.pow.JCurl;
 import jota.pow.SpongeFactory;
+import jota.pow.pearldiver.PearlDiverLocalPoW;
 import jota.utils.Converter;
 import org.iota.compass.crypto.Hasher;
 import org.iota.compass.crypto.ISS;
@@ -47,6 +47,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
+
+import static jota.pow.JCurl.HASH_LENGTH;
 
 public class MilestoneDatabase extends MilestoneSource {
 
@@ -156,14 +158,14 @@ public class MilestoneDatabase extends MilestoneSource {
     // Get the siblings in the current merkle tree
     List<String> leafSiblings = siblings(index, layers);
     String siblingsTrytes = String.join("", leafSiblings);
-    siblingsTrytes = Strings.padEnd(siblingsTrytes, ISS.FRAGMENT_LENGTH / ISS.TRYTE_WIDTH, '9');
+    String paddedSiblingsTrytes = Strings.padEnd(siblingsTrytes, ISS.FRAGMENT_LENGTH / ISS.TRYTE_WIDTH, '9');
 
     final String tag = getTagForIndex(index);
 
     // A milestone consists of two transactions.
     // The last transaction (currentIndex == lastIndex) contains the siblings for the merkle tree.
     Transaction txSiblings = new Transaction();
-    txSiblings.setSignatureFragments(siblingsTrytes);
+    txSiblings.setSignatureFragments(paddedSiblingsTrytes);
     txSiblings.setAddress(EMPTY_HASH);
     txSiblings.setCurrentIndex(signatureSource.getSecurity());
     txSiblings.setLastIndex(signatureSource.getSecurity());
@@ -232,9 +234,50 @@ public class MilestoneDatabase extends MilestoneSource {
     String signature = signatureSource.getSignature(index, hashToSign);
     txSiblings.setHash(hashToSign);
 
+    validateSignature(root, index, hashToSign, signature, siblingsTrytes);
+
     chainTransactionsFillSignatures(mwm, txs, signature);
 
     return txs;
+  }
+
+  private boolean validateSignature(String root, int index, String hashToSign, String signature, String siblingsTrytes) {
+    int[] rootTrits = Converter.trits(root);
+    int[] hashTrits = Converter.trits(hashToSign);
+    int[] signatureTrits = Converter.trits(signature);
+    int[] siblingsTrits = Converter.trits(siblingsTrytes);
+    SpongeFactory.Mode mode = signatureSource.getSignatureMode();
+
+    int[][] normalizedBundleFragments = new int[3][27];
+
+
+    {
+      int[] normalizedBundleHash = new Bundle().normalizedBundle(hashToSign);
+
+      // Split hash into 3 fragments
+      for (int i = 0; i < 3; i++) {
+        normalizedBundleFragments[i] = Arrays.copyOfRange(normalizedBundleHash, i * 27, (i + 1) * 27);
+      }
+    }
+
+    // Get digests
+    int[] digests = new int[signatureSource.getSecurity() * HASH_LENGTH];
+    for (int i = 0; i < signatureSource.getSecurity(); i++) {
+      int[] digestBuffer = ISS.digest(mode, normalizedBundleFragments[i % 3], Arrays.copyOfRange(signatureTrits, i * ISS.FRAGMENT_LENGTH, (i + 1) * ISS.FRAGMENT_LENGTH));
+      System.arraycopy(digestBuffer, 0, digests, i * HASH_LENGTH, HASH_LENGTH);
+    }
+    int[] addressTrits = ISS.address(mode, digests);
+
+    int[] calculatedRootTrits = ISS.getMerkleRoot(mode, addressTrits, siblingsTrits,
+        0, index, siblingsTrits.length / HASH_LENGTH);
+
+    if (!Arrays.equals(rootTrits, calculatedRootTrits)) {
+      String msg = "Calculated root does not match expected! Aborting. " + root + " :: " + Converter.trytes(calculatedRootTrits);
+      log.error(msg);
+      throw new RuntimeException(msg);
+    }
+
+    return true;
   }
 
   private void chainTransactionsFillSignatures(int mwm, List<Transaction> txs, String signature) {
@@ -267,9 +310,9 @@ public class MilestoneDatabase extends MilestoneSource {
       sponge.absorb(Converter.trits(tx.toTrytes().substring(OFFSET, OFFSET + LENGTH)));
     }
 
-    int[] bundleHashTrits = new int[JCurl.HASH_LENGTH];
-    sponge.squeeze(bundleHashTrits, 0, JCurl.HASH_LENGTH);
+    int[] bundleHashTrits = new int[HASH_LENGTH];
+    sponge.squeeze(bundleHashTrits, 0, HASH_LENGTH);
 
-    return Converter.trytes(bundleHashTrits, 0, JCurl.HASH_LENGTH);
+    return Converter.trytes(bundleHashTrits, 0, HASH_LENGTH);
   }
 }
