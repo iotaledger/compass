@@ -28,6 +28,7 @@ package org.iota.compass.conf;
 import com.beust.jcommander.Parameter;
 
 import java.util.List;
+import java.util.ArrayList;
 
 public class CoordinatorConfiguration extends BaseConfiguration {
   @Parameter(names = "-bootstrap", description = "Bootstrap network")
@@ -52,6 +53,6 @@ public class CoordinatorConfiguration extends BaseConfiguration {
   public Integer index;
 
   @Parameter(names = "-validator", description = "Validator nodes to use")
-  public List<String> validators;
+  public List<String> validators = new ArrayList<>();
 
 }
