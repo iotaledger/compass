@@ -4,6 +4,7 @@ COORDINATOR_RUNTIME_DEPS = [
     "@com_squareup_retrofit2_converter_gson//jar",
     "@com_squareup_retrofit2_retrofit//jar",
     "@com_squareup_okio_okio//jar",
+    "@io_netty_netty_tcnative_boringssl_static//jar",
 ]
 
 java_binary(
