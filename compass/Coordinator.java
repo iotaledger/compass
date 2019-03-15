@@ -44,8 +44,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class Coordinator {
-  private static final int MILESTONE_PROPAGATION_FAILS_THRESHOLD = 5;
   private static final Logger log = LoggerFactory.getLogger(Coordinator.class);
+  private static final String statePath = System.getProperty("user.dir") + File.separator + CoordinatorState.COORDINATOR_STATE_PATH;
   private final URL node;
   private final MilestoneSource db;
   private final IotaAPI api;
@@ -63,7 +63,6 @@ public class Coordinator {
 
     this.db = new MilestoneDatabase(config.powMode,
         signatureSource, config.layersPath);
-
     this.api = new IotaAPI.Builder()
         .protocol(this.node.getProtocol())
         .host(this.node.getHost())
@@ -103,10 +102,10 @@ public class Coordinator {
       try {
         state = loadState();
       } catch (Exception e) {
-        String msg = "Error loading Compass state file! This should not happen unless when bootstrapping.";
+        String msg = "Error loading Compass state file '" + statePath + "'! State file required if not bootstrapping.";
 
         log.error(msg);
-        throw new RuntimeException(msg);
+        throw new RuntimeException(e);
       }
     }
 
@@ -219,7 +218,7 @@ public class Coordinator {
 
   private void start() throws ArgumentException, InterruptedException, IOException {
     int bootstrap = config.bootstrap ? 0 : 3;
-    int milestonePropagationFails = 0;
+    int milestonePropagationRetries = 0;
     log.info("Bootstrap mode: " + bootstrap);
 
     while (true) {
@@ -249,19 +248,22 @@ public class Coordinator {
         // As it's solid,
         // If the node returns a latest milestone that is not the one we last issued
         if (nodeInfoResponse.getLatestMilestoneIndex() != state.latestMilestoneIndex) {
-          if (++milestonePropagationFails > MILESTONE_PROPAGATION_FAILS_THRESHOLD) {
+          // Bail if we attempted to broadcast the latest Milestone too many times
+          if (milestonePropagationRetries > config.propagationRetriesThreshold) {
             String msg = "Latest milestone " + state.latestMilestoneHash + " #" + state.latestMilestoneIndex + " is failing to propagate!!!";
+
             log.error(msg);
             throw new RuntimeException(msg);
           }
           log.warn("getNodeInfo returned latestMilestoneIndex #{}, it should be #{}. Rebroadcasting latest milestone.", nodeInfoResponse.getLatestMilestoneIndex(), state.latestMilestoneIndex);
           // We reissue the previous milestone again
           broadcastLatestMilestone();
+          milestonePropagationRetries++;
           // We wait a third of the milestone tick
           Thread.sleep(milestoneTick / 3);
           continue;
         }
-        milestonePropagationFails = 0;
+        milestonePropagationRetries = 0;
         // GetTransactionsToApprove will return tips referencing latest milestone.
         GetTransactionsToApproveResponse txToApprove = api.getTransactionsToApprove(depth, nodeInfoResponse.getLatestMilestone());
         trunk = txToApprove.getTrunkTransaction();
@@ -316,7 +318,14 @@ public class Coordinator {
       state.latestMilestoneTime = System.currentTimeMillis();
 
       // Everything went fine, now we store
-      storeState(state);
+      try {
+        storeState(state);
+      } catch (Exception e) {
+        String msg = "Error saving Compass state to file '" + statePath + "'!";
+
+        log.error(msg);
+        throw new RuntimeException(e);
+      }
 
       Thread.sleep(milestoneTick);
     }

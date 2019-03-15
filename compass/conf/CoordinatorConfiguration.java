@@ -55,4 +55,7 @@ public class CoordinatorConfiguration extends BaseConfiguration {
   @Parameter(names = "-validator", description = "Validator nodes to use")
   public List<String> validators = new ArrayList<>();
 
+  @Parameter(names = "-propagationRetriesThreshold", description = "Number of milestone propagation retries we attempt before failing.")
+  public int propagationRetriesThreshold = 5;
+
 }
