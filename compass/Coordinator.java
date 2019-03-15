@@ -33,35 +33,41 @@ import jota.dto.response.GetTransactionsToApproveResponse;
 import jota.error.ArgumentException;
 import jota.model.Transaction;
 import org.iota.compass.conf.CoordinatorConfiguration;
+import org.iota.compass.conf.CoordinatorState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.URI;
 import java.net.URL;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class Coordinator {
+  private static final int MILESTONE_PROPAGATION_FAILS_THRESHOLD = 5;
   private static final Logger log = LoggerFactory.getLogger(Coordinator.class);
   private final URL node;
   private final MilestoneSource db;
   private final IotaAPI api;
   private final CoordinatorConfiguration config;
-  private int latestMilestone;
-  private String latestMilestoneHash;
-  private long latestMilestoneTime;
+  private final CoordinatorState state;
   private List<IotaAPI> validatorAPIs;
 
   private long milestoneTick;
   private int depth;
 
-  public Coordinator(CoordinatorConfiguration config, SignatureSource signatureSource) throws IOException {
+  public Coordinator(CoordinatorConfiguration config, CoordinatorState state, SignatureSource signatureSource) throws IOException {
     this.config = config;
+    this.state = state;
     this.node = new URL(config.host);
 
     this.db = new MilestoneDatabase(config.powMode,
         signatureSource, config.layersPath);
+
     this.api = new IotaAPI.Builder()
         .protocol(this.node.getProtocol())
         .host(this.node.getHost())
@@ -77,8 +83,24 @@ public class Coordinator {
     }).collect(Collectors.toList());
   }
 
+  private static CoordinatorState loadState() throws IOException, ClassNotFoundException {
+    CoordinatorState state;
+    ObjectInputStream ois = new ObjectInputStream(new FileInputStream(CoordinatorState.COORDINATOR_STATE_PATH));
+    state = (CoordinatorState) ois.readObject();
+    ois.close();
+    return state;
+  }
+
+  private void storeState(CoordinatorState state) throws IOException {
+    ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(CoordinatorState.COORDINATOR_STATE_PATH));
+    oos.writeObject(state);
+    oos.close();
+  }
+
+
   public static void main(String[] args) throws Exception {
     CoordinatorConfiguration config = new CoordinatorConfiguration();
+    CoordinatorState state = loadState();
 
     JCommander.newBuilder()
         .addObject(config)
@@ -86,7 +108,7 @@ public class Coordinator {
         .build()
         .parse(args);
 
-    Coordinator coo = new Coordinator(config, SignatureSourceHelper.signatureSourceFromArgs(config.signatureSource, args));
+    Coordinator coo = new Coordinator(config, state, SignatureSourceHelper.signatureSourceFromArgs(config.signatureSource, args));
     coo.setup();
     coo.start();
   }
@@ -132,13 +154,22 @@ public class Coordinator {
     if (nodeInfo.getLatestSolidSubtangleMilestoneIndex() != nodeInfo.getLatestMilestoneIndex())
       return false;
 
-    if (!config.inception && (nodeInfo.getLatestSolidSubtangleMilestoneIndex() != latestMilestone))
+    if (!config.inception && (nodeInfo.getLatestSolidSubtangleMilestoneIndex() != state.latestMilestoneIndex))
       return false;
 
     if (nodeInfo.getLatestMilestone().equals(MilestoneSource.EMPTY_HASH) || nodeInfo.getLatestSolidSubtangleMilestone().equals(MilestoneSource.EMPTY_HASH))
       return false;
 
     return true;
+  }
+
+  private void broadcastLatestMilestone() throws ArgumentException {
+    if (config.broadcast) {
+      for (Transaction tx : state.latestMilestoneTransactions) {
+        api.storeAndBroadcast(tx.toTrytes());
+      }
+      log.info("Broadcasted milestone: " + state.latestMilestoneIndex);
+    }
   }
 
   /**
@@ -156,15 +187,12 @@ public class Coordinator {
     }
 
     if (config.index != null) {
-      latestMilestone = config.index;
-    } else {
-      // = node's start milestone index if bootstrap
-      latestMilestone = nodeInfoResponse.getLatestMilestoneIndex();
+      state.latestMilestoneIndex = config.index;
     }
 
-    log.info("Starting index from: " + latestMilestone);
-    if (nodeInfoResponse.getLatestMilestoneIndex() > latestMilestone && !config.inception) {
-      throw new RuntimeException("Provided index is lower than latest seen milestone: " + nodeInfoResponse.getLatestMilestoneIndex() + " vs " + latestMilestone);
+    log.info("Starting index from: " + state.latestMilestoneIndex);
+    if (nodeInfoResponse.getLatestMilestoneIndex() > state.latestMilestoneIndex && !config.inception) {
+      throw new RuntimeException("Provided index is lower than latest seen milestone: " + nodeInfoResponse.getLatestMilestoneIndex() + " vs " + state.latestMilestoneIndex);
     }
 
     milestoneTick = config.tick;
@@ -181,8 +209,9 @@ public class Coordinator {
     log.info("Setting initial depth to: " + depth);
   }
 
-  private void start() throws ArgumentException, InterruptedException {
+  private void start() throws ArgumentException, InterruptedException, IOException {
     int bootstrap = config.bootstrap ? 0 : 3;
+    int milestonePropagationFails = 0;
     log.info("Bootstrap mode: " + bootstrap);
 
     while (true) {
@@ -205,11 +234,26 @@ public class Coordinator {
       } else if (bootstrap < 3) {
         // Bootstrapping means creating a chain of milestones without pulling in external transactions.
         log.info("Reusing last milestone.");
-        trunk = latestMilestoneHash;
+        trunk = state.latestMilestoneHash;
         branch = MilestoneSource.EMPTY_HASH;
         bootstrap++;
       } else {
         // As it's solid,
+        // If the node returns a latest milestone that is not the one we last issued
+        if (nodeInfoResponse.getLatestMilestoneIndex() != state.latestMilestoneIndex) {
+          if (++milestonePropagationFails > MILESTONE_PROPAGATION_FAILS_THRESHOLD) {
+            String msg = "Latest milestone " + state.latestMilestoneHash + " #" + state.latestMilestoneIndex + " is failing to propagate!!!";
+            log.error(msg);
+            throw new RuntimeException(msg);
+          }
+          log.warn("getNodeInfo returned latestMilestoneIndex #{}, it should be #{}. Rebroadcasting latest milestone.", nodeInfoResponse.getLatestMilestoneIndex(), state.latestMilestoneIndex);
+          // We reissue the previous milestone again
+          broadcastLatestMilestone();
+          // We wait a third of the milestone tick
+          Thread.sleep(milestoneTick / 3);
+          continue;
+        }
+        milestonePropagationFails = 0;
         // GetTransactionsToApprove will return tips referencing latest milestone.
         GetTransactionsToApproveResponse txToApprove = api.getTransactionsToApprove(depth, nodeInfoResponse.getLatestMilestone());
         trunk = txToApprove.getTrunkTransaction();
@@ -240,25 +284,20 @@ public class Coordinator {
         }
       }
 
-      latestMilestone++;
+      // If all the above checks pass we are ready to issue a new milestone
+      state.latestMilestoneIndex++;
 
-      log.info("Issuing milestone: " + latestMilestone);
+      log.info("Issuing milestone: " + state.latestMilestoneIndex);
       log.info("Trunk: " + trunk + " Branch: " + branch);
-      List<Transaction> txs = db.createMilestone(trunk, branch, latestMilestone, config.MWM);
+      state.latestMilestoneTransactions = db.createMilestone(trunk, branch, state.latestMilestoneIndex, config.MWM);
 
-      latestMilestoneHash = txs.get(0).getHash();
+      state.latestMilestoneHash = state.latestMilestoneTransactions.get(0).getHash();
 
-      if (config.broadcast) {
-        for (Transaction tx : txs) {
-          api.storeAndBroadcast(tx.toTrytes());
-        }
-        log.info("Broadcasted milestone.");
-      }
-
-      log.info("Emitted milestone: " + latestMilestone);
+      // Do not store the state before broadcasting, since if broadcasting fails we should repeat the same milestone.
+      broadcastLatestMilestone();
 
       if (bootstrap >= 3) {
-        nextDepth = getNextDepth(depth, latestMilestoneTime);
+        nextDepth = getNextDepth(depth, state.latestMilestoneTime);
       } else {
         nextDepth = depth;
       }
@@ -266,7 +305,10 @@ public class Coordinator {
       log.info("Depth: " + depth + " -> " + nextDepth);
 
       depth = nextDepth;
-      latestMilestoneTime = System.currentTimeMillis();
+      state.latestMilestoneTime = System.currentTimeMillis();
+
+      // Everything went fine, now we store
+      storeState(state);
 
       Thread.sleep(milestoneTick);
     }
