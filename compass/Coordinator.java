@@ -37,11 +37,7 @@ import org.iota.compass.conf.CoordinatorState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileOutputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.URI;
 import java.net.URL;
 import java.util.List;
@@ -100,7 +96,13 @@ public class Coordinator {
 
   public static void main(String[] args) throws Exception {
     CoordinatorConfiguration config = new CoordinatorConfiguration();
-    CoordinatorState state = loadState();
+    CoordinatorState state;
+    try {
+      state = loadState();
+    } catch (FileNotFoundException e) {
+      log.warn("No Compass state file found! Starting with an empty state.");
+      state = new CoordinatorState();
+    }
 
     JCommander.newBuilder()
         .addObject(config)
