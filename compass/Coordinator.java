@@ -93,15 +93,21 @@ public class Coordinator {
     oos.close();
   }
 
-
   public static void main(String[] args) throws Exception {
     CoordinatorConfiguration config = new CoordinatorConfiguration();
     CoordinatorState state;
-    try {
-      state = loadState();
-    } catch (FileNotFoundException e) {
-      log.warn("No Compass state file found! Starting with an empty state.");
+    // We want an empty state if bootstrapping
+    if (config.bootstrap) {
       state = new CoordinatorState();
+    } else {
+      try {
+        state = loadState();
+      } catch (Exception e) {
+        String msg = "Error loading Compass state file! This should not happen unless when bootstrapping.";
+
+        log.error(msg);
+        throw new RuntimeException(msg);
+      }
     }
 
     JCommander.newBuilder()
