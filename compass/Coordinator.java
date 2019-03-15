@@ -50,7 +50,7 @@ public class Coordinator {
   private final MilestoneSource db;
   private final IotaAPI api;
   private final CoordinatorConfiguration config;
-  private final CoordinatorState state;
+  private CoordinatorState state;
   private List<IotaAPI> validatorAPIs;
 
   private long milestoneTick;
@@ -194,6 +194,7 @@ public class Coordinator {
     }
 
     if (config.index != null) {
+      state = new CoordinatorState();
       state.latestMilestoneIndex = config.index;
     }
 

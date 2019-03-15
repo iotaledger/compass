@@ -34,7 +34,7 @@ public class CoordinatorState implements Serializable {
 
   public static final String COORDINATOR_STATE_PATH = "compass.state";
 
-  public Integer latestMilestoneIndex;
+  public int latestMilestoneIndex;
   public String latestMilestoneHash;
   public long latestMilestoneTime;
   public List<Transaction> latestMilestoneTransactions;
