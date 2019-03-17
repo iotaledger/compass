@@ -176,7 +176,8 @@ public class Coordinator {
     if (!config.inception && (nodeInfo.getLatestSolidSubtangleMilestoneIndex() != state.latestMilestoneIndex))
       return false;
 
-    if (nodeInfo.getLatestMilestone().equals(MilestoneSource.EMPTY_HASH) || nodeInfo.getLatestSolidSubtangleMilestone().equals(MilestoneSource.EMPTY_HASH))
+    if (nodeInfo.getLatestMilestone().equals(MilestoneSource.EMPTY_HASH) ||
+            nodeInfo.getLatestSolidSubtangleMilestone().equals(MilestoneSource.EMPTY_HASH))
       return false;
 
     return true;
@@ -258,9 +259,7 @@ public class Coordinator {
         branch = MilestoneSource.EMPTY_HASH;
         bootstrap++;
       } else {
-        // As it's solid,
-        // If the node returns a latest milestone that is not the one we last issued
-        if (nodeInfoResponse.getLatestMilestoneIndex() != state.latestMilestoneIndex) {
+        if (!nodeIsSolid(nodeInfoResponse)) {
           // Bail if we attempted to broadcast the latest Milestone too many times
           if (milestonePropagationRetries > config.propagationRetriesThreshold) {
             String msg = "Latest milestone " + state.latestMilestoneHash + " #" + state.latestMilestoneIndex + " is failing to propagate!!!";
