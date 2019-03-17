@@ -40,6 +40,12 @@ public class CoordinatorConfiguration extends BaseConfiguration {
   @Parameter(names = "-depth", description = "Starting depth")
   public int depth = 3;
 
+  @Parameter(names = "-minDepth", description = "Minimal depth")
+  public int minDepth = 3;
+
+  @Parameter(names = "-maxDepth", description = "Maximal depth")
+  public int maxDepth = 1000;
+
   @Parameter(names = "-depthScale", description = "Time scale factor for depth decrease")
   public float depthScale = 1.01f;
 
@@ -60,4 +66,8 @@ public class CoordinatorConfiguration extends BaseConfiguration {
 
   @Parameter(names = "-allowDifferentCooAddress", description = "Don't fail on different Coordinator Addresses")
   public boolean allowDifferentCooAddress = false;
+
+  @Parameter(names = "-statePath", description = "Path to compass state file.")
+  public String statePath = "compass.state";
+
 }
