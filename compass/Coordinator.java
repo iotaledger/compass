@@ -80,16 +80,28 @@ public class Coordinator {
 
   private static CoordinatorState loadState() throws IOException, ClassNotFoundException {
     CoordinatorState state;
-    ObjectInputStream ois = new ObjectInputStream(new FileInputStream(CoordinatorState.COORDINATOR_STATE_PATH));
-    state = (CoordinatorState) ois.readObject();
-    ois.close();
+    ObjectInputStream ois = null;
+    try {
+      ois = new ObjectInputStream(new FileInputStream(CoordinatorState.COORDINATOR_STATE_PATH));
+      state = (CoordinatorState) ois.readObject();
+    } finally {
+      if (ois != null) {
+        ois.close();
+      }
+    }
     return state;
   }
 
   private void storeState(CoordinatorState state) throws IOException {
-    ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(CoordinatorState.COORDINATOR_STATE_PATH));
-    oos.writeObject(state);
-    oos.close();
+    ObjectOutputStream oos = null;
+    try {
+      oos = new ObjectOutputStream(new FileOutputStream(CoordinatorState.COORDINATOR_STATE_PATH));
+      oos.writeObject(state);
+    } finally {
+      if (oos != null) {
+        oos.close();
+      }
+    }
   }
 
   public static void main(String[] args) throws Exception {
