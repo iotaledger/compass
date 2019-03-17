@@ -97,6 +97,13 @@ public class Coordinator {
   public static void main(String[] args) throws Exception {
     CoordinatorConfiguration config = new CoordinatorConfiguration();
     CoordinatorState state;
+
+    JCommander.newBuilder()
+        .addObject(config)
+        .acceptUnknownOptions(true)
+        .build()
+        .parse(args);
+
     // We want an empty state if bootstrapping
     if (config.bootstrap) {
       state = new CoordinatorState();
@@ -104,18 +111,12 @@ public class Coordinator {
       try {
         state = loadState();
       } catch (Exception e) {
-        String msg = "Error loading Compass state file '" + statePath + "'! State file required if not bootstrapping.";
+        String msg = "Error loading Compass state file '" + statePath + "'! State file required if not bootstrapping...";
 
         log.error(msg, e);
         throw new RuntimeException(e);
       }
     }
-
-    JCommander.newBuilder()
-        .addObject(config)
-        .acceptUnknownOptions(true)
-        .build()
-        .parse(args);
 
     Coordinator coo = new Coordinator(config, state, SignatureSourceHelper.signatureSourceFromArgs(config.signatureSource, args));
     coo.setup();
