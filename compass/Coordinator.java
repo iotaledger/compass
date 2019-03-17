@@ -45,7 +45,6 @@ import java.util.stream.Collectors;
 
 public class Coordinator {
   private static final Logger log = LoggerFactory.getLogger(Coordinator.class);
-  private static final String statePath = System.getProperty("user.dir") + File.separator + CoordinatorState.COORDINATOR_STATE_PATH;
   private final URL node;
   private final MilestoneSource db;
   private final IotaAPI api;
@@ -78,54 +77,46 @@ public class Coordinator {
     }).collect(Collectors.toList());
   }
 
-  private static CoordinatorState loadState() throws IOException, ClassNotFoundException {
+  private static CoordinatorState loadState(String path) throws IOException, ClassNotFoundException {
     CoordinatorState state;
-    ObjectInputStream ois = null;
-    try {
-      ois = new ObjectInputStream(new FileInputStream(CoordinatorState.COORDINATOR_STATE_PATH));
+    try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(path))) {
       state = (CoordinatorState) ois.readObject();
-    } finally {
-      if (ois != null) {
-        ois.close();
-      }
+      log.info("loaded index {}", state.latestMilestoneIndex);
     }
     return state;
   }
 
-  private void storeState(CoordinatorState state) throws IOException {
-    ObjectOutputStream oos = null;
-    try {
-      oos = new ObjectOutputStream(new FileOutputStream(CoordinatorState.COORDINATOR_STATE_PATH));
+  private void storeState(CoordinatorState state, String path) throws IOException {
+    try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(path))) {
       oos.writeObject(state);
-    } finally {
-      if (oos != null) {
-        oos.close();
-      }
+      log.info("stored index {}", state.latestMilestoneIndex);
     }
   }
 
   public static void main(String[] args) throws Exception {
     CoordinatorConfiguration config = new CoordinatorConfiguration();
     CoordinatorState state;
-    // We want an empty state if bootstrapping
-    if (config.bootstrap) {
-      state = new CoordinatorState();
-    } else {
-      try {
-        state = loadState();
-      } catch (Exception e) {
-        String msg = "Error loading Compass state file '" + statePath + "'! State file required if not bootstrapping.";
-
-        log.error(msg, e);
-        throw new RuntimeException(e);
-      }
-    }
 
     JCommander.newBuilder()
         .addObject(config)
         .acceptUnknownOptions(true)
         .build()
         .parse(args);
+
+    // We want an empty state if bootstrapping
+      // and to allow overriding state file using `-index` flag
+    if (config.bootstrap || config.index != null) {
+      state = new CoordinatorState();
+    } else {
+      try {
+        state = loadState(config.statePath);
+      } catch (Exception e) {
+        String msg = "Error loading Compass state file '" + config.statePath + "'! State file required if not bootstrapping...";
+
+        log.error(msg, e);
+        throw new RuntimeException(e);
+      }
+    }
 
     Coordinator coo = new Coordinator(config, state, SignatureSourceHelper.signatureSourceFromArgs(config.signatureSource, args));
     coo.setup();
@@ -184,10 +175,10 @@ public class Coordinator {
 
   private void broadcastLatestMilestone() throws ArgumentException {
     if (config.broadcast) {
-      for (Transaction tx : state.latestMilestoneTransactions) {
-        api.storeAndBroadcast(tx.toTrytes());
+      for (String tx : state.latestMilestoneTransactions) {
+        api.storeAndBroadcast(tx);
       }
-      log.info("Broadcasted milestone: " + state.latestMilestoneIndex);
+      log.info("Broadcast milestone: " + state.latestMilestoneIndex);
     }
   }
 
@@ -229,7 +220,7 @@ public class Coordinator {
     log.info("Setting initial depth to: " + depth);
   }
 
-  private void start() throws ArgumentException, InterruptedException, IOException {
+  private void start() throws ArgumentException, InterruptedException {
     int bootstrap = config.bootstrap ? 0 : 3;
     int milestonePropagationRetries = 0;
     log.info("Bootstrap mode: " + bootstrap);
@@ -312,9 +303,10 @@ public class Coordinator {
 
       log.info("Issuing milestone: " + state.latestMilestoneIndex);
       log.info("Trunk: " + trunk + " Branch: " + branch);
-      state.latestMilestoneTransactions = db.createMilestone(trunk, branch, state.latestMilestoneIndex, config.MWM);
 
-      state.latestMilestoneHash = state.latestMilestoneTransactions.get(0).getHash();
+      List<Transaction> latestMilestoneTransactions = db.createMilestone(trunk, branch, state.latestMilestoneIndex, config.MWM);
+      state.latestMilestoneTransactions = latestMilestoneTransactions.stream().map(Transaction::toTrytes).collect(Collectors.toList());
+      state.latestMilestoneHash = latestMilestoneTransactions.get(0).getHash();
 
       // Do not store the state before broadcasting, since if broadcasting fails we should repeat the same milestone.
       broadcastLatestMilestone();
@@ -332,9 +324,9 @@ public class Coordinator {
 
       // Everything went fine, now we store
       try {
-        storeState(state);
+        storeState(state, config.statePath);
       } catch (Exception e) {
-        String msg = "Error saving Compass state to file '" + statePath + "'!";
+        String msg = "Error saving Compass state to file '" + config.statePath + "'!";
 
         log.error(msg, e);
         throw new RuntimeException(e);
