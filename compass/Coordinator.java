@@ -231,7 +231,7 @@ public class Coordinator {
 
     log.info("Validating Coordinator addresses.");
     if (!Objects.equals(nodeInfoResponse.getCoordinatorAddress(), db.getRoot())) {
-      log.error("Coordinator Addresses do not match! {} vs. {}", nodeInfoResponse.getCoordinatorAddress(), db.getRoot());
+      log.warn("Coordinator Addresses do not match! {} vs. {}", nodeInfoResponse.getCoordinatorAddress(), db.getRoot());
       if (!config.allowDifferentCooAddress) {
         throw new IllegalArgumentException("Coordinator Addresses do not match!");
       }
