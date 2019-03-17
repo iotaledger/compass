@@ -64,6 +64,9 @@ public class CoordinatorConfiguration extends BaseConfiguration {
   @Parameter(names = "-propagationRetriesThreshold", description = "Number of milestone propagation retries we attempt before failing.")
   public int propagationRetriesThreshold = 5;
 
+  @Parameter(names = "-allowDifferentCooAddress", description = "Don't fail on different Coordinator Addresses")
+  public boolean allowDifferentCooAddress = false;
+
   @Parameter(names = "-statePath", description = "Path to compass state file.")
   public String statePath = "compass.state";
 

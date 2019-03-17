@@ -41,6 +41,7 @@ import java.io.*;
 import java.net.URI;
 import java.net.URL;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class Coordinator {
@@ -218,6 +219,14 @@ public class Coordinator {
       throw new IllegalArgumentException("depth must be > 0");
     }
     log.info("Setting initial depth to: " + depth);
+
+    log.info("Validating Coordinator addresses.");
+    if (!Objects.equals(nodeInfoResponse.getCoordinatorAddress(), db.getRoot())) {
+      log.warn("Coordinator Addresses do not match! {} vs. {}", nodeInfoResponse.getCoordinatorAddress(), db.getRoot());
+      if (!config.allowDifferentCooAddress) {
+        throw new IllegalArgumentException("Coordinator Addresses do not match!");
+      }
+    }
   }
 
   private void start() throws ArgumentException, InterruptedException {
