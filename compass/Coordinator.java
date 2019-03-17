@@ -116,7 +116,7 @@ public class Coordinator {
       } catch (Exception e) {
         String msg = "Error loading Compass state file '" + statePath + "'! State file required if not bootstrapping.";
 
-        log.error(msg, e.getMessage());
+        log.error(msg, e);
         throw new RuntimeException(e);
       }
     }
@@ -336,7 +336,7 @@ public class Coordinator {
       } catch (Exception e) {
         String msg = "Error saving Compass state to file '" + statePath + "'!";
 
-        log.error(msg, e.getMessage());
+        log.error(msg, e);
         throw new RuntimeException(e);
       }
 
