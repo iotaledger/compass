@@ -153,7 +153,6 @@ public class Coordinator {
       nextDepth = currentDepth * 4 / 3;
     }
 
-    // hardcoded lower & upper threshold
     if (nextDepth < config.minDepth) {
       nextDepth = config.minDepth;
     } else if (nextDepth > config.maxDepth) {
