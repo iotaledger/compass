@@ -25,18 +25,15 @@
 
 package org.iota.compass.conf;
 
-import jota.model.Transaction;
-
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.List;
 
 public class CoordinatorState implements Serializable {
 
-  public static final String COORDINATOR_STATE_PATH = "compass.state";
-
   public int latestMilestoneIndex;
   public String latestMilestoneHash;
   public long latestMilestoneTime;
-  public List<Transaction> latestMilestoneTransactions;
+  public List<String> latestMilestoneTransactions = Collections.EMPTY_LIST;
 
 }
