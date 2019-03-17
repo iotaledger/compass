@@ -12,6 +12,10 @@ os:
 
 env:
   - V=0.21.0
+addons:
+  apt:
+    packages:
+      - jq
 
 before_install:
   - |
@@ -38,6 +42,24 @@ script:
       --experimental_repository_cache="$HOME/.bazel_repository_cache" \
       --local_resources=400,1,1.0 \
       //...
+
+  #run HOW TO steps
+  - bazel run //docker:coordinator
+  - bazel run //docker:layers_calculator
+  - cd docs/private_tangle
+  - cat config.example.json| jq '.tick = 5000' > config.json
+  - cp snapshot.example.txt snapshot.txt
+  - ./01_calculate_layers.sh
+  - ./02_run_iri.sh &
+  - |
+    until [ `docker ps | grep iri | cut -f1 -d\ ` ]; do
+    sleep 1;
+    done
+  - sleep 20
+  - ./03_run_coordinator.sh -bootstrap -broadcast &
+  - sleep 120
+  - docker kill $(docker ps | grep compass | cut -f1 -d\ )
+  - docker kill $(docker ps | grep iri | cut -f1 -d\ )
 
 notifications:
   email: false
