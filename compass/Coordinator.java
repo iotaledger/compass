@@ -105,7 +105,8 @@ public class Coordinator {
         .parse(args);
 
     // We want an empty state if bootstrapping
-    if (config.bootstrap) {
+      // and to allow overriding state file using `-index` flag
+    if (config.bootstrap || config.index != null) {
       state = new CoordinatorState();
     } else {
       try {
