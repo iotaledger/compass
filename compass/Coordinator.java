@@ -154,10 +154,10 @@ public class Coordinator {
     }
 
     // hardcoded lower & upper threshold
-    if (nextDepth < 3) {
-      nextDepth = 3;
-    } else if (nextDepth > 1000) {
-      nextDepth = 1000;
+    if (nextDepth < config.minDepth) {
+      nextDepth = config.minDepth;
+    } else if (nextDepth > config.maxDepth) {
+      nextDepth = config.maxDepth;
     }
 
     return nextDepth;
