@@ -80,27 +80,17 @@ public class Coordinator {
 
   private static CoordinatorState loadState() throws IOException, ClassNotFoundException {
     CoordinatorState state;
-    ObjectInputStream ois = null;
-    try {
-      ois = new ObjectInputStream(new FileInputStream(CoordinatorState.COORDINATOR_STATE_PATH));
+    try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(CoordinatorState.COORDINATOR_STATE_PATH))) {
       state = (CoordinatorState) ois.readObject();
-    } finally {
-      if (ois != null) {
-        ois.close();
-      }
+      log.info("loaded index {}", state.latestMilestoneIndex);
     }
     return state;
   }
 
   private void storeState(CoordinatorState state) throws IOException {
-    ObjectOutputStream oos = null;
-    try {
-      oos = new ObjectOutputStream(new FileOutputStream(CoordinatorState.COORDINATOR_STATE_PATH));
+    try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(CoordinatorState.COORDINATOR_STATE_PATH))) {
       oos.writeObject(state);
-    } finally {
-      if (oos != null) {
-        oos.close();
-      }
+      log.info("stored index {}", state.latestMilestoneIndex);
     }
   }
 
@@ -184,10 +174,10 @@ public class Coordinator {
 
   private void broadcastLatestMilestone() throws ArgumentException {
     if (config.broadcast) {
-      for (Transaction tx : state.latestMilestoneTransactions) {
-        api.storeAndBroadcast(tx.toTrytes());
+      for (String tx : state.latestMilestoneTransactions) {
+        api.storeAndBroadcast(tx);
       }
-      log.info("Broadcasted milestone: " + state.latestMilestoneIndex);
+      log.info("Broadcast milestone: " + state.latestMilestoneIndex);
     }
   }
 
@@ -229,7 +219,7 @@ public class Coordinator {
     log.info("Setting initial depth to: " + depth);
   }
 
-  private void start() throws ArgumentException, InterruptedException, IOException {
+  private void start() throws ArgumentException, InterruptedException {
     int bootstrap = config.bootstrap ? 0 : 3;
     int milestonePropagationRetries = 0;
     log.info("Bootstrap mode: " + bootstrap);
@@ -312,9 +302,10 @@ public class Coordinator {
 
       log.info("Issuing milestone: " + state.latestMilestoneIndex);
       log.info("Trunk: " + trunk + " Branch: " + branch);
-      state.latestMilestoneTransactions = db.createMilestone(trunk, branch, state.latestMilestoneIndex, config.MWM);
 
-      state.latestMilestoneHash = state.latestMilestoneTransactions.get(0).getHash();
+      List<Transaction> latestMilestoneTransactions = db.createMilestone(trunk, branch, state.latestMilestoneIndex, config.MWM);
+      state.latestMilestoneTransactions = latestMilestoneTransactions.stream().map(Transaction::toTrytes).collect(Collectors.toList());
+      state.latestMilestoneHash = latestMilestoneTransactions.get(0).getHash();
 
       // Do not store the state before broadcasting, since if broadcasting fails we should repeat the same milestone.
       broadcastLatestMilestone();
