@@ -31,8 +31,6 @@ import java.util.List;
 
 public class CoordinatorState implements Serializable {
 
-  public static final String COORDINATOR_STATE_PATH = "compass.state";
-
   public int latestMilestoneIndex;
   public String latestMilestoneHash;
   public long latestMilestoneTime;

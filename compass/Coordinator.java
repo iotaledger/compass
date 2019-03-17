@@ -45,7 +45,6 @@ import java.util.stream.Collectors;
 
 public class Coordinator {
   private static final Logger log = LoggerFactory.getLogger(Coordinator.class);
-  private static final String statePath = System.getProperty("user.dir") + File.separator + CoordinatorState.COORDINATOR_STATE_PATH;
   private final URL node;
   private final MilestoneSource db;
   private final IotaAPI api;
@@ -78,17 +77,17 @@ public class Coordinator {
     }).collect(Collectors.toList());
   }
 
-  private static CoordinatorState loadState() throws IOException, ClassNotFoundException {
+  private static CoordinatorState loadState(String path) throws IOException, ClassNotFoundException {
     CoordinatorState state;
-    try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(CoordinatorState.COORDINATOR_STATE_PATH))) {
+    try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(path))) {
       state = (CoordinatorState) ois.readObject();
       log.info("loaded index {}", state.latestMilestoneIndex);
     }
     return state;
   }
 
-  private void storeState(CoordinatorState state) throws IOException {
-    try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(CoordinatorState.COORDINATOR_STATE_PATH))) {
+  private void storeState(CoordinatorState state, String path) throws IOException {
+    try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(path))) {
       oos.writeObject(state);
       log.info("stored index {}", state.latestMilestoneIndex);
     }
@@ -110,9 +109,9 @@ public class Coordinator {
       state = new CoordinatorState();
     } else {
       try {
-        state = loadState();
+        state = loadState(config.statePath);
       } catch (Exception e) {
-        String msg = "Error loading Compass state file '" + statePath + "'! State file required if not bootstrapping...";
+        String msg = "Error loading Compass state file '" + config.statePath + "'! State file required if not bootstrapping...";
 
         log.error(msg, e);
         throw new RuntimeException(e);
@@ -325,9 +324,9 @@ public class Coordinator {
 
       // Everything went fine, now we store
       try {
-        storeState(state);
+        storeState(state, config.statePath);
       } catch (Exception e) {
-        String msg = "Error saving Compass state to file '" + statePath + "'!";
+        String msg = "Error saving Compass state to file '" + config.statePath + "'!";
 
         log.error(msg, e);
         throw new RuntimeException(e);
