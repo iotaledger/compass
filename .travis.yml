@@ -18,6 +18,7 @@ env:
     - TEST=inMemoryBootstrap.sh
     - TEST=inMemoryRestart.sh
     - TEST=remoteRestart.sh
+    - TEST=remoteLayerCaculation.sh
 
 
 addons:
