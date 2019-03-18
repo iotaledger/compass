@@ -17,6 +17,8 @@ env:
     - TEST=bazel
     - TEST=inMemoryBootstrap.sh
     - TEST=inMemoryRestart.sh
+    - TEST=remoteRestart.sh
+
 
 addons:
   apt:

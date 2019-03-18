@@ -4,6 +4,7 @@
 echo "building docker images"
 bazel run //docker:coordinator
 bazel run //docker:layers_calculator
+bazel run //docker:signature_source_server
 
 echo "setting up configs"
 cd docs/private_tangle
