@@ -11,7 +11,13 @@ os:
 #  - osx
 
 env:
-  - V=0.21.0
+  global:
+    - V=0.21.0
+  matrix:
+    - TEST=bazel
+    - TEST=inMemoryBootstrap.sh
+    - TEST=inMemoryRestart.sh
+
 addons:
   apt:
     packages:
@@ -33,33 +39,23 @@ before_install:
 
 script:
   - |
-    bazel \
-      --output_base=$HOME/.cache/bazel \
-      --host_jvm_args=-Xmx500m \
-      --host_jvm_args=-Xms500m \
-      test \
-      --config=ci \
-      --experimental_repository_cache="$HOME/.bazel_repository_cache" \
-      --local_resources=400,1,1.0 \
-      //...
-
-  #run HOW TO steps
-  - bazel run //docker:coordinator
-  - bazel run //docker:layers_calculator
-  - cd docs/private_tangle
-  - cat config.example.json| jq '.tick = 5000' > config.json
-  - cp snapshot.example.txt snapshot.txt
-  - ./01_calculate_layers.sh
-  - ./02_run_iri.sh &
+    if [[ "${TEST}" == "bazel" ]]; then
+      bazel \
+          --output_base=$HOME/.cache/bazel \
+          --host_jvm_args=-Xmx500m \
+          --host_jvm_args=-Xms500m \
+          test \
+          --config=ci \
+          --experimental_repository_cache="$HOME/.bazel_repository_cache" \
+          --local_resources=400,1,1.0 \
+          //...
+    fi
+  # run HOW TO steps
   - |
-    until [ `docker ps | grep iri | cut -f1 -d\ ` ]; do
-    sleep 1;
-    done
-  - sleep 20
-  - ./03_run_coordinator.sh -bootstrap -broadcast &
-  - sleep 120
-  - docker kill $(docker ps | grep compass | cut -f1 -d\ )
-  - docker kill $(docker ps | grep iri | cut -f1 -d\ )
+    if [[ "${TEST}" != "bazel" ]]; then
+      /bin/sh setupTests.sh;
+      /bin/sh $TEST;
+    fi
 
 notifications:
   email: false
