@@ -192,7 +192,8 @@ public class Coordinator {
 
     if (config.bootstrap) {
       log.info("Bootstrapping.");
-      if (!nodeInfoResponse.getLatestSolidSubtangleMilestone().equals(MilestoneSource.EMPTY_HASH) || !nodeInfoResponse.getLatestMilestone().equals(MilestoneSource.EMPTY_HASH)) {
+      if (!nodeInfoResponse.getLatestSolidSubtangleMilestone().equals(MilestoneSource.EMPTY_HASH) ||
+              !nodeInfoResponse.getLatestMilestone().equals(MilestoneSource.EMPTY_HASH)) {
         throw new RuntimeException("Network already bootstrapped");
       }
     }
@@ -204,7 +205,8 @@ public class Coordinator {
 
     log.info("Starting index from: " + state.latestMilestoneIndex);
     if (nodeInfoResponse.getLatestMilestoneIndex() > state.latestMilestoneIndex && !config.inception) {
-      throw new RuntimeException("Provided index is lower than latest seen milestone: " + nodeInfoResponse.getLatestMilestoneIndex() + " vs " + state.latestMilestoneIndex);
+      throw new RuntimeException("Provided index is lower than latest seen milestone: " +
+              nodeInfoResponse.getLatestMilestoneIndex() + " vs " + state.latestMilestoneIndex);
     }
 
     milestoneTick = config.tick;
@@ -261,12 +263,16 @@ public class Coordinator {
         if (!nodeIsSolid(nodeInfoResponse)) {
           // Bail if we attempted to broadcast the latest Milestone too many times
           if (milestonePropagationRetries > config.propagationRetriesThreshold) {
-            String msg = "Latest milestone " + state.latestMilestoneHash + " #" + state.latestMilestoneIndex + " is failing to propagate!!!";
+            String msg =
+                    "Latest milestone " + state.latestMilestoneHash + " #" +
+                    state.latestMilestoneIndex + " is failing to propagate!!!";
 
             log.error(msg);
             throw new RuntimeException(msg);
           }
-          log.warn("getNodeInfo returned latestMilestoneIndex #{}, it should be #{}. Rebroadcasting latest milestone.", nodeInfoResponse.getLatestMilestoneIndex(), state.latestMilestoneIndex);
+          log.warn("getNodeInfo returned latestSolidSubtangleMilestoneIndex #{}, " +
+                  "it should be #{}. Rebroadcasting latest milestone.",
+                  nodeInfoResponse.getLatestSolidSubtangleMilestoneIndex(), state.latestMilestoneIndex);
           // We reissue the previous milestone again
           broadcastLatestMilestone();
           milestonePropagationRetries++;
@@ -276,7 +282,7 @@ public class Coordinator {
         }
         milestonePropagationRetries = 0;
         // GetTransactionsToApprove will return tips referencing latest milestone.
-        GetTransactionsToApproveResponse txToApprove = api.getTransactionsToApprove(depth, nodeInfoResponse.getLatestMilestone());
+        GetTransactionsToApproveResponse txToApprove = api.getTransactionsToApprove(depth, state.latestMilestoneHash);
         trunk = txToApprove.getTrunkTransaction();
         branch = txToApprove.getBranchTransaction();
 
