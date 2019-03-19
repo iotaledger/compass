@@ -58,7 +58,6 @@ public class ShadowingCoordinator {
 
   private final ShadowingCoordinatorConfiguration config;
   private final IotaAPI api;
-  private final URL node;
   private final MilestoneSource db;
   private List<OldMilestone> oldMilestones;
 
@@ -67,11 +66,11 @@ public class ShadowingCoordinator {
 
     this.db = new MilestoneDatabase(config.powMode,
         signatureSource, config.layersPath);
-    this.node = new URL(config.host);
+    URL node = new URL(config.host);
     this.api = new IotaAPI.Builder()
-        .protocol(this.node.getProtocol())
-        .host(this.node.getHost())
-        .port(Integer.toString(this.node.getPort()))
+        .protocol(node.getProtocol())
+        .host(node.getHost())
+        .port(Integer.toString(node.getPort()))
         .build();
   }
 
@@ -90,9 +89,9 @@ public class ShadowingCoordinator {
   /**
    * Configures this `ShadowingCoordinator` instance and validates parameters
    *
-   * @throws Exception
+   * @throws IOException if reading milestones CSV fails
    */
-  private void setup() throws Exception {
+  private void setup() throws IOException {
     if (config.oldRoot != null) {
       throw new NotImplementedException("oldRoot");
     }
@@ -116,12 +115,6 @@ public class ShadowingCoordinator {
     log.info("Old milestone indices (min, max): [{}, {}]", oldMilestones.get(0).milestoneIdx, oldMilestones.get(oldMilestones.size() - 1).milestoneIdx);
   }
 
-  /**
-   * Broadcasts a list of transactions to an IRI node
-   *
-   * @param transactions
-   * @throws ArgumentException
-   */
   private void broadcast(List<Transaction> transactions) throws ArgumentException {
     log.info("Collected {} transactions for broadcast.", transactions.size());
 
