@@ -30,20 +30,20 @@ import java.util.Random;
 
 public class TestUtil {
 
-  public static final String ALPHABET = "9ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  public static final int randomnessSeed = 1;
-  public static final Random random = new SecureRandom();
+  private static final String ALPHABET = "9ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  private static final int randomnessSeed = 1;
+  private static final Random random = new SecureRandom();
 
   {
     //for deterministic testing
     random.setSeed(randomnessSeed);
   }
 
-  public static String nextSeed() {
+  static String nextSeed() {
     return nextTrytes(81);
   }
 
-  public static String nextTrytes(int count) {
+  private static String nextTrytes(int count) {
     char[] buf = new char[count];
 
     for (int idx = 0; idx < buf.length; ++idx)
