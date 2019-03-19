@@ -35,6 +35,7 @@ import jota.pow.pearldiver.PearlDiverLocalPoW;
 import jota.utils.Converter;
 import org.iota.compass.crypto.Hasher;
 import org.iota.compass.crypto.ISS;
+import org.iota.compass.crypto.KerlPoW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,9 +98,9 @@ public class MilestoneDatabase extends MilestoneSource {
   /**
    * Calculates a list of siblings
    *
-   * @param leafIdx
-   * @param layers
-   * @return
+   * @param leafIdx index of leaf
+   * @param layers the Merkle tree in layers structure
+   * @return a list of siblings
    */
   private static List<String> siblings(int leafIdx, List<List<String>> layers) {
     List<String> siblings = new ArrayList<>(layers.size());
@@ -241,9 +242,8 @@ public class MilestoneDatabase extends MilestoneSource {
     return txs;
   }
 
-  private boolean validateSignature(String root, int index, String hashToSign, String signature, String siblingsTrytes) {
+  private void validateSignature(String root, int index, String hashToSign, String signature, String siblingsTrytes) {
     int[] rootTrits = Converter.trits(root);
-    int[] hashTrits = Converter.trits(hashToSign);
     int[] signatureTrits = Converter.trits(signature);
     int[] siblingsTrits = Converter.trits(siblingsTrytes);
     SpongeFactory.Mode mode = signatureSource.getSignatureMode();
@@ -276,8 +276,6 @@ public class MilestoneDatabase extends MilestoneSource {
       log.error(msg);
       throw new RuntimeException(msg);
     }
-
-    return true;
   }
 
   private void chainTransactionsFillSignatures(int mwm, List<Transaction> txs, String signature) {
