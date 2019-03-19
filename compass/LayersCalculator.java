@@ -77,8 +77,11 @@ public class LayersCalculator implements Runnable {
   public void run() {
     Path layersPath = Paths.get(config.layersPath);
     try {
-      Files.createDirectory(layersPath);
+      if (Files.notExists(layersPath)) {
+        Files.createDirectory(layersPath);
+      }
     } catch (IOException e) {
+      log.warn("failed to create folder: " + layersPath, e);
     }
 
     List<String> addresses = calculateAllAddresses();
@@ -95,17 +98,17 @@ public class LayersCalculator implements Runnable {
     log.info("Successfully wrote Merkle Tree with root: " + layers.get(0).get(0));
   }
 
-  public List<String> calculateAllAddresses() {
+  //Package Private For Testing
+  List<String> calculateAllAddresses() {
     log.info("Calculating " + count + " addresses.");
-    List<String> outList = IntStream.range(0, count)
+    return IntStream.range(0, count)
         .mapToObj(signatureSource::getAddress)
         .parallel()
         .collect(Collectors.toList());
-
-    return outList;
   }
 
-  public List<List<String>> calculateAllLayers(List<String> addresses) {
+  //Package Private For Testing
+  List<List<String>> calculateAllLayers(List<String> addresses) {
     int depth = IntMath.log2(addresses.size(), RoundingMode.FLOOR);
     List<List<String>> layers = new ArrayList<>(depth);
     List<String> last = addresses;
