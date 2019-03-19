@@ -6,8 +6,6 @@ import jota.pow.SpongeFactory;
 import jota.utils.Converter;
 import org.iota.compass.crypto.ISS;
 import org.iota.compass.crypto.ISSInPlace;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 
@@ -15,7 +13,6 @@ import java.util.Arrays;
  * A signature provider that holds the seed in local memory.
  */
 public class InMemorySignatureSource extends SignatureSource {
-  private static final Logger log = LoggerFactory.getLogger(InMemorySignatureSource.class);
 
   private final SpongeFactory.Mode mode;
   private final int[] seed;
@@ -58,7 +55,7 @@ public class InMemorySignatureSource extends SignatureSource {
   /**
    * @param index      key / tree leaf index to generate signature for
    * @param hashToSign the hash to be signed
-   * @return
+   * @return a valid signature for {@code hashToSign} using the {@code index} leaf
    */
   @Override
   public String getSignature(long index, String hashToSign) {
