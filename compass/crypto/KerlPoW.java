@@ -23,7 +23,7 @@
  *     https://www.iota.org/
  */
 
-package org.iota.compass;
+package org.iota.compass.crypto;
 
 import jota.IotaLocalPoW;
 import jota.pow.ICurl;
@@ -44,9 +44,9 @@ import java.util.stream.IntStream;
 public class KerlPoW implements IotaLocalPoW {
   private static final Logger log = LoggerFactory.getLogger("KerlPoW");
 
-  public final static int NONCE_START_TRIT = 7938;
-  public final static int NONCE_LENGTH_TRIT = 81;
-  public final static int NONCE_START_TRYTE = NONCE_START_TRIT / 3;
+  private final static int NONCE_START_TRIT = 7938;
+  private final static int NONCE_LENGTH_TRIT = 81;
+  private final static int NONCE_START_TRYTE = NONCE_START_TRIT / 3;
   public final static int NONCE_LENGTH_TRYTE = NONCE_LENGTH_TRIT / 3;
 
   private KerlPoWSettings settings;
@@ -55,7 +55,7 @@ public class KerlPoW implements IotaLocalPoW {
     this(new KerlPoWSettings());
   }
 
-  public KerlPoW(KerlPoWSettings settings) {
+  private KerlPoW(KerlPoWSettings settings) {
     this.settings = settings;
     if (settings.numberOfThreads <= 0) {
       int available = Runtime.getRuntime().availableProcessors();

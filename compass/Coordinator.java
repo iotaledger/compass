@@ -46,7 +46,6 @@ import java.util.stream.Collectors;
 
 public class Coordinator {
   private static final Logger log = LoggerFactory.getLogger(Coordinator.class);
-  private final URL node;
   private final MilestoneSource db;
   private final IotaAPI api;
   private final CoordinatorConfiguration config;
@@ -59,14 +58,14 @@ public class Coordinator {
   public Coordinator(CoordinatorConfiguration config, CoordinatorState state, SignatureSource signatureSource) throws IOException {
     this.config = config;
     this.state = state;
-    this.node = new URL(config.host);
+    URL node = new URL(config.host);
 
     this.db = new MilestoneDatabase(config.powMode,
         signatureSource, config.layersPath);
     this.api = new IotaAPI.Builder()
-        .protocol(this.node.getProtocol())
-        .host(this.node.getHost())
-        .port(Integer.toString(this.node.getPort()))
+        .protocol(node.getProtocol())
+        .host(node.getHost())
+        .port(Integer.toString(node.getPort()))
         .build();
 
     validatorAPIs = config.validators.stream().map(url -> {
@@ -127,9 +126,9 @@ public class Coordinator {
   /**
    * Computes the next depth to use for getTransactionsToApprove call.
    *
-   * @param currentDepth
-   * @param lastTimestamp
-   * @return
+   * @param currentDepth tip selection depth from the current round
+   * @param lastTimestamp when the current round started
+   * @return depth for the next round
    */
   protected int getNextDepth(int currentDepth, long lastTimestamp) {
     long now = System.currentTimeMillis();
@@ -157,7 +156,7 @@ public class Coordinator {
   /**
    * Checks that node is solid, bootstrapped and on latest milestone.
    *
-   * @param nodeInfo
+   * @param nodeInfo response from node API call
    * @return true if node is solid
    */
   protected boolean nodeIsSolid(GetNodeInfoResponse nodeInfo) {
@@ -287,11 +286,11 @@ public class Coordinator {
         branch = txToApprove.getBranchTransaction();
 
         if (validatorAPIs.size() > 0) {
-          boolean isConsistent = validatorAPIs.parallelStream().map(api -> {
-            CheckConsistencyResponse response = null;
+          boolean isConsistent = validatorAPIs.parallelStream().allMatch(api -> {
+            CheckConsistencyResponse response;
             try {
               response = api.checkConsistency(trunk, branch);
-              if(!response.getState()) {
+              if (!response.getState()) {
                 log.error("{} reported invalid consistency: {}", api.getHost(), response.getInfo());
               }
               return response.getState();
@@ -299,7 +298,7 @@ public class Coordinator {
               e.printStackTrace();
               return false;
             }
-          }).allMatch(a -> a == true);
+          });
 
           if (!isConsistent) {
             String msg = "Trunk & branch were not consistent!!! T: " + trunk + " B: " + branch;
