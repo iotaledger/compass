@@ -23,7 +23,7 @@
  *     https://www.iota.org/
  */
 
-package org.iota.compass;
+package compass;
 
 import com.beust.jcommander.JCommander;
 import jota.IotaAPI;
@@ -32,6 +32,11 @@ import jota.dto.response.GetNodeInfoResponse;
 import jota.dto.response.GetTransactionsToApproveResponse;
 import jota.error.ArgumentException;
 import jota.model.Transaction;
+
+import org.iota.compass.MilestoneDatabase;
+import org.iota.compass.MilestoneSource;
+import org.iota.compass.SignatureSource;
+import org.iota.compass.SignatureSourceHelper;
 import org.iota.compass.conf.CoordinatorConfiguration;
 import org.iota.compass.conf.CoordinatorState;
 import org.slf4j.Logger;
