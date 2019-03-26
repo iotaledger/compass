@@ -55,7 +55,7 @@ public class Coordinator {
   private long milestoneTick;
   private int depth;
 
-  public Coordinator(CoordinatorConfiguration config, CoordinatorState state, SignatureSource signatureSource) throws IOException {
+  private Coordinator(CoordinatorConfiguration config, CoordinatorState state, SignatureSource signatureSource) throws IOException {
     this.config = config;
     this.state = state;
     URL node = new URL(config.host);
@@ -130,7 +130,7 @@ public class Coordinator {
    * @param lastTimestamp when the current round started
    * @return depth for the next round
    */
-  protected int getNextDepth(int currentDepth, long lastTimestamp) {
+  private int getNextDepth(int currentDepth, long lastTimestamp) {
     long now = System.currentTimeMillis();
     int nextDepth;
 
@@ -159,7 +159,7 @@ public class Coordinator {
    * @param nodeInfo response from node API call
    * @return true if node is solid
    */
-  protected boolean nodeIsSolid(GetNodeInfoResponse nodeInfo) {
+  private boolean nodeIsSolid(GetNodeInfoResponse nodeInfo) {
     if (nodeInfo.getLatestSolidSubtangleMilestoneIndex() != nodeInfo.getLatestMilestoneIndex())
       return false;
 
@@ -237,7 +237,6 @@ public class Coordinator {
 
     while (true) {
       String trunk, branch;
-      int nextDepth;
       GetNodeInfoResponse nodeInfoResponse = api.getNodeInfo();
 
       if (bootstrap == 2 && !nodeIsSolid(nodeInfoResponse)) {
@@ -260,24 +259,17 @@ public class Coordinator {
         bootstrap++;
       } else {
         if (!nodeIsSolid(nodeInfoResponse)) {
-          // Bail if we attempted to broadcast the latest Milestone too many times
-          if (milestonePropagationRetries > config.propagationRetriesThreshold) {
-            String msg =
-                    "Latest milestone " + state.latestMilestoneHash + " #" +
-                    state.latestMilestoneIndex + " is failing to propagate!!!";
-
-            log.error(msg);
-            throw new RuntimeException(msg);
+          if (attemptToRepropagateLatestMilestone(milestonePropagationRetries,
+                  nodeInfoResponse.getLatestSolidSubtangleMilestoneIndex())) {
+            milestonePropagationRetries++;
+            // We wait a third of the milestone tick
+            Thread.sleep(milestoneTick / 3);
+            continue;
           }
-          log.warn("getNodeInfo returned latestSolidSubtangleMilestoneIndex #{}, " +
-                  "it should be #{}. Rebroadcasting latest milestone.",
-                  nodeInfoResponse.getLatestSolidSubtangleMilestoneIndex(), state.latestMilestoneIndex);
-          // We reissue the previous milestone again
-          broadcastLatestMilestone();
-          milestonePropagationRetries++;
-          // We wait a third of the milestone tick
-          Thread.sleep(milestoneTick / 3);
-          continue;
+          else {
+            throw new RuntimeException("Latest milestone " + state.latestMilestoneHash + " #" +
+                    state.latestMilestoneIndex + " is failing to propagate!!!");
+          }
         }
         milestonePropagationRetries = 0;
         // GetTransactionsToApprove will return tips referencing latest milestone.
@@ -285,53 +277,17 @@ public class Coordinator {
         trunk = txToApprove.getTrunkTransaction();
         branch = txToApprove.getBranchTransaction();
 
-        if (validatorAPIs.size() > 0) {
-          boolean isConsistent = validatorAPIs.parallelStream().allMatch(api -> {
-            CheckConsistencyResponse response;
-            try {
-              response = api.checkConsistency(trunk, branch);
-              if (!response.getState()) {
-                log.error("{} reported invalid consistency: {}", api.getHost(), response.getInfo());
-              }
-              return response.getState();
-            } catch (ArgumentException e) {
-              e.printStackTrace();
-              return false;
-            }
-          });
-
-          if (!isConsistent) {
-            String msg = "Trunk & branch were not consistent!!! T: " + trunk + " B: " + branch;
-
-            log.error(msg);
-            throw new RuntimeException(msg);
-          }
-
+        if (!validateTransactionsToApprove(trunk, branch)) {
+          throw new RuntimeException("Trunk & branch were not consistent!!! T: " + trunk + " B: " + branch);
         }
+
       }
 
       // If all the above checks pass we are ready to issue a new milestone
       state.latestMilestoneIndex++;
 
-      log.info("Issuing milestone: " + state.latestMilestoneIndex);
-      log.info("Trunk: " + trunk + " Branch: " + branch);
-
-      List<Transaction> latestMilestoneTransactions = db.createMilestone(trunk, branch, state.latestMilestoneIndex, config.MWM);
-      state.latestMilestoneTransactions = latestMilestoneTransactions.stream().map(Transaction::toTrytes).collect(Collectors.toList());
-      state.latestMilestoneHash = latestMilestoneTransactions.get(0).getHash();
-
-      // Do not store the state before broadcasting, since if broadcasting fails we should repeat the same milestone.
-      broadcastLatestMilestone();
-
-      if (bootstrap >= 3) {
-        nextDepth = getNextDepth(depth, state.latestMilestoneTime);
-      } else {
-        nextDepth = depth;
-      }
-
-      log.info("Depth: " + depth + " -> " + nextDepth);
-
-      depth = nextDepth;
+      createAndBroadcastMilestone(trunk, branch);
+      updateDepth(bootstrap);
       state.latestMilestoneTime = System.currentTimeMillis();
 
       // Everything went fine, now we store
@@ -346,5 +302,80 @@ public class Coordinator {
 
       Thread.sleep(milestoneTick);
     }
+  }
+
+  private void updateDepth(int bootstrap) {
+    int nextDepth;
+    if (bootstrap >= 3) {
+      nextDepth = getNextDepth(depth, state.latestMilestoneTime);
+    } else {
+      nextDepth = depth;
+    }
+
+    log.info("Depth: " + depth + " -> " + nextDepth);
+
+    depth = nextDepth;
+  }
+
+  private void createAndBroadcastMilestone(String trunk, String branch) throws ArgumentException {
+    log.info("Issuing milestone: " + state.latestMilestoneIndex);
+    log.info("Trunk: " + trunk + " Branch: " + branch);
+
+    List<Transaction> latestMilestoneTransactions = db.createMilestone(trunk, branch, state.latestMilestoneIndex, config.MWM);
+    state.latestMilestoneTransactions = latestMilestoneTransactions.stream().map(Transaction::toTrytes).collect(Collectors.toList());
+    state.latestMilestoneHash = latestMilestoneTransactions.get(0).getHash();
+
+    // Do not store the state before broadcasting, since if broadcasting fails we should repeat the same milestone.
+    broadcastLatestMilestone();
+  }
+
+  /**
+   * Checks the consistency of 2 given transactions against the nodes specified by {@link #validatorAPIs}
+   * @param trunk transaction to be approved by milestone
+   * @param branch transaction to be approved by milestone
+   * @return {@code true} if the checks passed or didn't take place. Else return {@code false}.
+   */
+  private boolean validateTransactionsToApprove(String trunk, String branch) {
+    if (validatorAPIs.size() > 0) {
+      boolean isConsistent = validatorAPIs.parallelStream().allMatch(api -> {
+        CheckConsistencyResponse response;
+        try {
+          response = api.checkConsistency(trunk, branch);
+          if (!response.getState()) {
+            log.error("{} reported invalid consistency: {}", api.getHost(), response.getInfo());
+          }
+          return response.getState();
+        } catch (ArgumentException e) {
+          e.printStackTrace();
+          return false;
+        }
+      });
+
+      return isConsistent;
+    }
+
+    //nothing was checked so validation can't fail
+    return true;
+  }
+
+  /**
+   * Attempts to rebroadcast the latest milestone. Should succeed if {@code milestonePropagationRetries}
+   * is not above configured threshold.
+   *
+   * @param milestonePropagationRetries number of propagation retries that have already taken place
+   * @param lsm latest solid milestone index
+   * @return {@code true} if the milestone was broadcasted again else return false
+   * @throws ArgumentException upon an API problem
+   */
+  private boolean attemptToRepropagateLatestMilestone(int milestonePropagationRetries, int lsm) throws ArgumentException {
+    // Bail if we attempted to broadcast the latest Milestone too many times
+    if (milestonePropagationRetries > config.propagationRetriesThreshold) {
+      return false;
+    }
+    log.warn("getNodeInfo returned latestSolidSubtangleMilestoneIndex #{}, " +
+            "it should be #{}. Rebroadcasting latest milestone.", lsm, state.latestMilestoneIndex);
+    // We reissue the previous milestone again
+    broadcastLatestMilestone();
+    return true;
   }
 }
