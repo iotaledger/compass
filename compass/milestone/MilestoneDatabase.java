@@ -47,7 +47,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.StreamSupport;
 
 import static jota.pow.JCurl.HASH_LENGTH;
 
@@ -79,7 +78,7 @@ public class MilestoneDatabase extends MilestoneSource {
   private static List<List<String>> loadLayers(String path) throws IOException {
     Map<Integer, List<String>> result = new ConcurrentHashMap<>();
 
-    StreamSupport.stream(Files.newDirectoryStream(Paths.get(path)).spliterator(), true)
+    Files.newDirectoryStream(Paths.get(path))
         .forEach((Path p) -> {
           int idx = Integer.parseInt(p.toString().split("\\.")[1]);
           try {
