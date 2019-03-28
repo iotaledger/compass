@@ -76,7 +76,7 @@ public class MilestoneDatabase extends MilestoneSource {
   }
 
   private static List<List<String>> loadLayers(String path) throws IOException {
-    Map<Integer, List<String>> result = new ConcurrentHashMap<>();
+    Map<Integer, List<String>> result = new HashMap<>();
 
     Files.newDirectoryStream(Paths.get(path))
         .forEach((Path p) -> {
