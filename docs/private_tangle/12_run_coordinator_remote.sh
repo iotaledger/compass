@@ -7,6 +7,7 @@ load_config
 
 docker run -t --net host --rm -v $scriptdir/data:/data iota/compass/docker:coordinator coordinator_deploy.jar \
 	-layers /data/layers \
+	-statePath /data/compass.state \
 	-powMode $powMode \
 	-mwm $mwm \
 	-tick $tick \

@@ -41,11 +41,11 @@ import java.io.*;
 import java.net.URI;
 import java.net.URL;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class Coordinator {
   private static final Logger log = LoggerFactory.getLogger(Coordinator.class);
-  private final URL node;
   private final MilestoneSource db;
   private final IotaAPI api;
   private final CoordinatorConfiguration config;
@@ -58,14 +58,14 @@ public class Coordinator {
   public Coordinator(CoordinatorConfiguration config, CoordinatorState state, SignatureSource signatureSource) throws IOException {
     this.config = config;
     this.state = state;
-    this.node = new URL(config.host);
+    URL node = new URL(config.host);
 
     this.db = new MilestoneDatabase(config.powMode,
         signatureSource, config.layersPath);
     this.api = new IotaAPI.Builder()
-        .protocol(this.node.getProtocol())
-        .host(this.node.getHost())
-        .port(Integer.toString(this.node.getPort()))
+        .protocol(node.getProtocol())
+        .host(node.getHost())
+        .port(Integer.toString(node.getPort()))
         .build();
 
     validatorAPIs = config.validators.stream().map(url -> {
@@ -126,9 +126,9 @@ public class Coordinator {
   /**
    * Computes the next depth to use for getTransactionsToApprove call.
    *
-   * @param currentDepth
-   * @param lastTimestamp
-   * @return
+   * @param currentDepth tip selection depth from the current round
+   * @param lastTimestamp when the current round started
+   * @return depth for the next round
    */
   protected int getNextDepth(int currentDepth, long lastTimestamp) {
     long now = System.currentTimeMillis();
@@ -144,11 +144,10 @@ public class Coordinator {
       nextDepth = currentDepth * 4 / 3;
     }
 
-    // hardcoded lower & upper threshold
-    if (nextDepth < 3) {
-      nextDepth = 3;
-    } else if (nextDepth > 1000) {
-      nextDepth = 1000;
+    if (nextDepth < config.minDepth) {
+      nextDepth = config.minDepth;
+    } else if (nextDepth > config.maxDepth) {
+      nextDepth = config.maxDepth;
     }
 
     return nextDepth;
@@ -157,7 +156,7 @@ public class Coordinator {
   /**
    * Checks that node is solid, bootstrapped and on latest milestone.
    *
-   * @param nodeInfo
+   * @param nodeInfo response from node API call
    * @return true if node is solid
    */
   protected boolean nodeIsSolid(GetNodeInfoResponse nodeInfo) {
@@ -167,7 +166,8 @@ public class Coordinator {
     if (!config.inception && (nodeInfo.getLatestSolidSubtangleMilestoneIndex() != state.latestMilestoneIndex))
       return false;
 
-    if (nodeInfo.getLatestMilestone().equals(MilestoneSource.EMPTY_HASH) || nodeInfo.getLatestSolidSubtangleMilestone().equals(MilestoneSource.EMPTY_HASH))
+    if (nodeInfo.getLatestMilestone().equals(MilestoneSource.EMPTY_HASH) ||
+            nodeInfo.getLatestSolidSubtangleMilestone().equals(MilestoneSource.EMPTY_HASH))
       return false;
 
     return true;
@@ -191,7 +191,8 @@ public class Coordinator {
 
     if (config.bootstrap) {
       log.info("Bootstrapping.");
-      if (!nodeInfoResponse.getLatestSolidSubtangleMilestone().equals(MilestoneSource.EMPTY_HASH) || !nodeInfoResponse.getLatestMilestone().equals(MilestoneSource.EMPTY_HASH)) {
+      if (!nodeInfoResponse.getLatestSolidSubtangleMilestone().equals(MilestoneSource.EMPTY_HASH) ||
+              !nodeInfoResponse.getLatestMilestone().equals(MilestoneSource.EMPTY_HASH)) {
         throw new RuntimeException("Network already bootstrapped");
       }
     }
@@ -203,7 +204,8 @@ public class Coordinator {
 
     log.info("Starting index from: " + state.latestMilestoneIndex);
     if (nodeInfoResponse.getLatestMilestoneIndex() > state.latestMilestoneIndex && !config.inception) {
-      throw new RuntimeException("Provided index is lower than latest seen milestone: " + nodeInfoResponse.getLatestMilestoneIndex() + " vs " + state.latestMilestoneIndex);
+      throw new RuntimeException("Provided index is lower than latest seen milestone: " +
+              nodeInfoResponse.getLatestMilestoneIndex() + " vs " + state.latestMilestoneIndex);
     }
 
     milestoneTick = config.tick;
@@ -218,6 +220,14 @@ public class Coordinator {
       throw new IllegalArgumentException("depth must be > 0");
     }
     log.info("Setting initial depth to: " + depth);
+
+    log.info("Validating Coordinator addresses.");
+    if (!Objects.equals(nodeInfoResponse.getCoordinatorAddress(), db.getRoot())) {
+      log.warn("Coordinator Addresses do not match! {} vs. {}", nodeInfoResponse.getCoordinatorAddress(), db.getRoot());
+      if (!config.allowDifferentCooAddress) {
+        throw new IllegalArgumentException("Coordinator Addresses do not match!");
+      }
+    }
   }
 
   private void start() throws ArgumentException, InterruptedException {
@@ -249,17 +259,19 @@ public class Coordinator {
         branch = MilestoneSource.EMPTY_HASH;
         bootstrap++;
       } else {
-        // As it's solid,
-        // If the node returns a latest milestone that is not the one we last issued
-        if (nodeInfoResponse.getLatestMilestoneIndex() != state.latestMilestoneIndex) {
+        if (!nodeIsSolid(nodeInfoResponse)) {
           // Bail if we attempted to broadcast the latest Milestone too many times
           if (milestonePropagationRetries > config.propagationRetriesThreshold) {
-            String msg = "Latest milestone " + state.latestMilestoneHash + " #" + state.latestMilestoneIndex + " is failing to propagate!!!";
+            String msg =
+                    "Latest milestone " + state.latestMilestoneHash + " #" +
+                    state.latestMilestoneIndex + " is failing to propagate!!!";
 
             log.error(msg);
             throw new RuntimeException(msg);
           }
-          log.warn("getNodeInfo returned latestMilestoneIndex #{}, it should be #{}. Rebroadcasting latest milestone.", nodeInfoResponse.getLatestMilestoneIndex(), state.latestMilestoneIndex);
+          log.warn("getNodeInfo returned latestSolidSubtangleMilestoneIndex #{}, " +
+                  "it should be #{}. Rebroadcasting latest milestone.",
+                  nodeInfoResponse.getLatestSolidSubtangleMilestoneIndex(), state.latestMilestoneIndex);
           // We reissue the previous milestone again
           broadcastLatestMilestone();
           milestonePropagationRetries++;
@@ -269,16 +281,16 @@ public class Coordinator {
         }
         milestonePropagationRetries = 0;
         // GetTransactionsToApprove will return tips referencing latest milestone.
-        GetTransactionsToApproveResponse txToApprove = api.getTransactionsToApprove(depth, nodeInfoResponse.getLatestMilestone());
+        GetTransactionsToApproveResponse txToApprove = api.getTransactionsToApprove(depth, state.latestMilestoneHash);
         trunk = txToApprove.getTrunkTransaction();
         branch = txToApprove.getBranchTransaction();
 
         if (validatorAPIs.size() > 0) {
-          boolean isConsistent = validatorAPIs.parallelStream().map(api -> {
-            CheckConsistencyResponse response = null;
+          boolean isConsistent = validatorAPIs.parallelStream().allMatch(api -> {
+            CheckConsistencyResponse response;
             try {
               response = api.checkConsistency(trunk, branch);
-              if(!response.getState()) {
+              if (!response.getState()) {
                 log.error("{} reported invalid consistency: {}", api.getHost(), response.getInfo());
               }
               return response.getState();
@@ -286,7 +298,7 @@ public class Coordinator {
               e.printStackTrace();
               return false;
             }
-          }).allMatch(a -> a == true);
+          });
 
           if (!isConsistent) {
             String msg = "Trunk & branch were not consistent!!! T: " + trunk + " B: " + branch;

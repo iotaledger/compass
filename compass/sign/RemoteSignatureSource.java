@@ -21,7 +21,6 @@ import java.util.Optional;
 public class RemoteSignatureSource extends SignatureSource {
   private static final Logger log = LoggerFactory.getLogger(RemoteSignatureSource.class);
 
-  private final ManagedChannel channel;
   private final SignatureSourceGrpc.SignatureSourceBlockingStub serviceStub;
 
   private Optional<Integer> cachedSecurity = Optional.empty();
@@ -52,14 +51,13 @@ public class RemoteSignatureSource extends SignatureSource {
   /**
    * Constructs a RemoteSignatureSource using an *unencrypted* gRPC channel.
    *
-   * @param uri
+   * @param uri the URI of the host to connect to
    */
   public RemoteSignatureSource(String uri) {
     this(ManagedChannelBuilder.forTarget(uri).usePlaintext().build());
   }
 
-  RemoteSignatureSource(ManagedChannel channel) {
-    this.channel = channel;
+  private RemoteSignatureSource(ManagedChannel channel) {
     this.serviceStub = SignatureSourceGrpc.newBlockingStub(channel);
   }
 
