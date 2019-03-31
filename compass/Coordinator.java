@@ -107,6 +107,7 @@ public class Coordinator {
       // and to allow overriding state file using `-index` flag
     if (config.bootstrap || config.index != null) {
       state = new CoordinatorState();
+      state.latestMilestoneIndex = config.index == null ? 0 : config.index;
     } else {
       try {
         state = loadState(config.statePath);
@@ -195,11 +196,6 @@ public class Coordinator {
               !nodeInfoResponse.getLatestMilestone().equals(MilestoneSource.EMPTY_HASH)) {
         throw new RuntimeException("Network already bootstrapped");
       }
-    }
-
-    if (config.index != null) {
-      state = new CoordinatorState();
-      state.latestMilestoneIndex = config.index;
     }
 
     log.info("Starting index from: " + state.latestMilestoneIndex);
