@@ -161,17 +161,21 @@ public class Coordinator {
    * @return true if node is solid
    */
   private boolean nodeIsSolid(GetNodeInfoResponse nodeInfo) {
-    if (nodeInfo.getLatestSolidSubtangleMilestoneIndex() != nodeInfo.getLatestMilestoneIndex())
-      return false;
-
-    if (!config.inception && (nodeInfo.getLatestSolidSubtangleMilestoneIndex() != state.latestMilestoneIndex))
-      return false;
-
     if (nodeInfo.getLatestMilestone().equals(MilestoneSource.EMPTY_HASH) ||
             nodeInfo.getLatestSolidSubtangleMilestone().equals(MilestoneSource.EMPTY_HASH))
       return false;
 
-    return true;
+    return nodeInfo.getLatestSolidSubtangleMilestoneIndex() == nodeInfo.getLatestMilestoneIndex();
+  }
+
+  /**
+   * Checks that node's latest solid milestone matches internal state.
+   *
+   * @param nodeInfo response from node API call
+   * @return true if node is solid
+   */
+  private boolean nodeMatchesInternalState(GetNodeInfoResponse nodeInfo) {
+    return config.inception || (nodeInfo.getLatestSolidSubtangleMilestoneIndex() == state.latestMilestoneIndex);
   }
 
   private void broadcastLatestMilestone() throws ArgumentException {
@@ -235,10 +239,16 @@ public class Coordinator {
       String trunk, branch;
       GetNodeInfoResponse nodeInfoResponse = api.getNodeInfo();
 
-      if (bootstrap == 2 && !nodeIsSolid(nodeInfoResponse)) {
-        log.warn("Node not solid.");
-        Thread.sleep(config.unsolidDelay);
-        continue;
+      if (bootstrap == 2) {
+        if (!nodeIsSolid(nodeInfoResponse)) {
+          log.warn("Node not solid.");
+          Thread.sleep(config.unsolidDelay);
+          continue;
+        } else if (!nodeMatchesInternalState(nodeInfoResponse)) {
+          log.warn("Node's solid milestone does not match Compass state: " + state.latestMilestoneIndex);
+          Thread.sleep(config.unsolidDelay);
+          continue;
+        }
       }
 
       // Node is solid.
@@ -255,6 +265,11 @@ public class Coordinator {
         bootstrap++;
       } else {
         if (!nodeIsSolid(nodeInfoResponse)) {
+          log.warn("Node not solid.");
+          Thread.sleep(config.unsolidDelay);
+          continue;
+        }
+        if (!nodeMatchesInternalState(nodeInfoResponse)) {
           if (attemptToRepropagateLatestMilestone(milestonePropagationRetries,
                   nodeInfoResponse.getLatestSolidSubtangleMilestoneIndex())) {
             milestonePropagationRetries++;
