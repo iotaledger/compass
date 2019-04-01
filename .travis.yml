@@ -58,7 +58,7 @@ script:
     if [[ "${TEST}" != "bazel" ]]; then
       /bin/sh CI/setupTests.sh;
       /bin/sh CI/${TEST}.sh;
-      /bin/sh CI/cleanUp.sh;
+      sudo /bin/sh CI/cleanUp.sh;
     fi
 
 notifications:
