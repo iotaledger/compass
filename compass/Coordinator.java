@@ -233,7 +233,6 @@ public class Coordinator {
   private void start() throws ArgumentException, InterruptedException {
     int bootstrapStage = 0;
     int milestonePropagationRetries = 0;
-    log.info("Bootstrap mode: " + config.bootstrap);
 
     while (true) {
       String trunk, branch;
