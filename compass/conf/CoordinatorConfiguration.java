@@ -70,4 +70,9 @@ public class CoordinatorConfiguration extends BaseConfiguration {
   @Parameter(names = "-statePath", description = "Path to compass state file.")
   public String statePath = "compass.state";
 
+  @Parameter(names = "-APIRetries", description = "Number of attempts to retry failing API call.")
+  public int APIRetries = 5;
+
+  @Parameter(names = "-APIRetryInterval", description = "Interval (in milliseconds) to wait between failing API attempts.")
+  public int APIRetryInterval = 1000;
 }
