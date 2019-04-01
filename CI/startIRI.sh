@@ -16,4 +16,5 @@ while ! curl http://localhost:14265 -X POST -H 'Content-Type: application/json' 
         exit 255
     fi
 done
+echo ""
 echo "IRI initialized"

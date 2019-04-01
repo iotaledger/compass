@@ -15,10 +15,10 @@ env:
     - V=0.21.0
   matrix:
     - TEST=bazel
-    - TEST=inMemoryBootstrap.sh
-    - TEST=inMemoryRestart.sh
-    - TEST=remoteRestart.sh
-    - TEST=remoteLayerCaculation.sh
+    - TEST=inMemoryBootstrap
+    - TEST=inMemoryRestart
+    - TEST=remoteRestart
+    - TEST=remoteLayerCaculation
 
 
 addons:
@@ -56,9 +56,9 @@ script:
   # run HOW TO steps
   - |
     if [[ "${TEST}" != "bazel" ]]; then
-      /bin/sh setupTests.sh;
-      /bin/sh $TEST;
-      /bin/sh cleanUp.sh;
+      /bin/sh CI/setupTests.sh;
+      /bin/sh CI/${TEST}.sh;
+      /bin/sh CI/cleanUp.sh;
     fi
 
 notifications:

@@ -7,7 +7,7 @@ if ! [ `docker ps | grep iri | cut -f1 -d\ ` ]; then
     exit 255
 fi
 
-if ! [ `docker ps | grep compass | cut -f1 -d\ ` ]; then
+if ! [ `docker ps | grep coordinator | cut -f1 -d\ ` ]; then
     echo "Compass exited, see logs"
     exit 255
 fi
@@ -17,7 +17,7 @@ if docker logs $(docker ps | grep iri | cut -f1 -d\ ) | grep -i 'error'; then
     echo "IRI threw errors, see logs"
     exit 255
 fi
-if docker logs $(docker ps | grep compass | cut -f1 -d\ ) | grep -i 'error'; then
+if docker logs $(docker ps | grep coordinator | cut -f1 -d\ ) | grep -i 'error'; then
     echo "Compass threw errors, see logs"
     exit 255
 fi

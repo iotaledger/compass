@@ -1,7 +1,7 @@
 #!/bin/sh
 scriptdir=$(dirname "$(readlink -f "$0")")
 
-if ! /bin/sh startIRI.sh; then
+if ! /bin/sh ${scriptdir}/startIRI.sh; then
     exit 255
 fi
 
