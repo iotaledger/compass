@@ -234,24 +234,6 @@ public class Coordinator {
     }
   }
 
-  private GetNodeInfoResponse getNodeInfoWithRetries() throws InterruptedException {
-    GetNodeInfoResponse response = null;
-    for(int i = 0; i < config.APIRetries; i++) {
-      try {
-        response = api.getNodeInfo();
-        break;
-      } catch (ArgumentException e) {
-        e.printStackTrace();
-        Thread.sleep(config.APIRetryInterval);
-      }
-    }
-    if (response == null) {
-      throw new RuntimeException("getNodeInfo failed, check node!");
-    }
-
-    return response;
-  }
-
   private void start() throws InterruptedException {
     int bootstrap = config.bootstrap ? 0 : 3;
     int milestonePropagationRetries = 0;
@@ -326,24 +308,6 @@ public class Coordinator {
     }
   }
 
-  private GetTransactionsToApproveResponse getGetTransactionsToApproveResponseWithRetries() throws InterruptedException {
-    GetTransactionsToApproveResponse response = null;
-    for(int i = 0; i < config.APIRetries; i++) {
-      try {
-        response = api.getTransactionsToApprove(depth, state.latestMilestoneHash);
-        break;
-      } catch (ArgumentException e) {
-        e.printStackTrace();
-        Thread.sleep(config.APIRetryInterval);
-      }
-    }
-    if (response == null) {
-      throw new RuntimeException("getTransactionsToApprove failed, check node!");
-    }
-
-    return response;
-  }
-
   private void updateDepth(int bootstrap) {
     int nextDepth;
     if (bootstrap >= 3) {
@@ -397,13 +361,49 @@ public class Coordinator {
     return true;
   }
 
+  private GetNodeInfoResponse getNodeInfoWithRetries() throws InterruptedException {
+    GetNodeInfoResponse response = null;
+    for(int i = 0; i < config.APIRetries; i++) {
+      try {
+        response = api.getNodeInfo();
+        break;
+      } catch (IllegalStateException | ArgumentException e) {
+        e.printStackTrace();
+        Thread.sleep(config.APIRetryInterval);
+      }
+    }
+    if (response == null) {
+      throw new RuntimeException("getNodeInfo failed, check node!");
+    }
+
+    return response;
+  }
+
+  private GetTransactionsToApproveResponse getGetTransactionsToApproveResponseWithRetries() throws InterruptedException {
+    GetTransactionsToApproveResponse response = null;
+    for(int i = 0; i < config.APIRetries; i++) {
+      try {
+        response = api.getTransactionsToApprove(depth, state.latestMilestoneHash);
+        break;
+      } catch (IllegalStateException | ArgumentException e) {
+        e.printStackTrace();
+        Thread.sleep(config.APIRetryInterval);
+      }
+    }
+    if (response == null) {
+      throw new RuntimeException("getTransactionsToApprove failed, check node!");
+    }
+
+    return response;
+  }
+
   private CheckConsistencyResponse getCheckConsistencyResponseWithRetires(String trunk, String branch, IotaAPI api) throws InterruptedException {
     CheckConsistencyResponse response = null;
     for(int i = 0; i < config.APIRetries; i++) {
       try {
         response = api.checkConsistency(trunk, branch);
         break;
-      } catch (ArgumentException e) {
+      } catch (IllegalStateException | ArgumentException e) {
         e.printStackTrace();
         Thread.sleep(config.APIRetryInterval);
       }
