@@ -58,6 +58,7 @@ script:
     if [[ "${TEST}" != "bazel" ]]; then
       /bin/sh setupTests.sh;
       /bin/sh $TEST;
+      /bin/sh cleanUp.sh;
     fi
 
 notifications:

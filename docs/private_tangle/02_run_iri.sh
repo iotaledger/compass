@@ -8,7 +8,7 @@ load_config
 COO_ADDRESS=$(cat $scriptdir/data/layers/layer.0.csv)
 
 docker pull iotaledger/iri:latest
-docker run -t --net host --rm -v $scriptdir/db:/iri/data -v $scriptdir/snapshot.txt:/snapshot.txt -p 14265 iotaledger/iri:latest \
+docker run -t --log-driver=journald --net host --rm -v $scriptdir/db:/iri/data -v $scriptdir/snapshot.txt:/snapshot.txt -p 14265 iotaledger/iri:latest \
        --testnet \
        --remote \
        --testnet-coordinator $COO_ADDRESS \

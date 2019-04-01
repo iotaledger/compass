@@ -13,3 +13,5 @@ cp snapshot.example.txt snapshot.txt
 
 echo "calculating merkle tree"
 ./01_calculate_layers.sh
+
+cd ../..
