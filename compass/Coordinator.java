@@ -239,6 +239,7 @@ public class Coordinator {
   }
 
   private void start() throws InterruptedException {
+    int bootstrapStage = 0;
     int milestonePropagationRetries = 0;
 
     while (true) {
