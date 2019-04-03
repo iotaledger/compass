@@ -18,7 +18,7 @@ env:
     - TEST=inMemoryBootstrap
     - TEST=inMemoryRestart
     - TEST=remoteRestart
-    - TEST=remoteLayerCaculation
+    - TEST=remoteLayerCalculation
 
 
 addons:
