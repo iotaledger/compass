@@ -161,17 +161,21 @@ public class Coordinator {
    * @return true if node is solid
    */
   private boolean nodeIsSolid(GetNodeInfoResponse nodeInfo) {
-    if (nodeInfo.getLatestSolidSubtangleMilestoneIndex() != nodeInfo.getLatestMilestoneIndex())
-      return false;
-
-    if (!config.inception && (nodeInfo.getLatestSolidSubtangleMilestoneIndex() != state.latestMilestoneIndex))
-      return false;
-
     if (nodeInfo.getLatestMilestone().equals(MilestoneSource.EMPTY_HASH) ||
             nodeInfo.getLatestSolidSubtangleMilestone().equals(MilestoneSource.EMPTY_HASH))
       return false;
 
-    return true;
+    return nodeInfo.getLatestSolidSubtangleMilestoneIndex() == nodeInfo.getLatestMilestoneIndex();
+  }
+
+  /**
+   * Checks that node's latest solid milestone matches internal state.
+   *
+   * @param nodeInfo response from node API call
+   * @return true if node is solid
+   */
+  private boolean nodeMatchesInternalState(GetNodeInfoResponse nodeInfo) {
+    return config.inception || (nodeInfo.getLatestSolidSubtangleMilestoneIndex() == state.latestMilestoneIndex);
   }
 
   private void broadcastLatestMilestone() throws InterruptedException {
@@ -235,34 +239,19 @@ public class Coordinator {
   }
 
   private void start() throws InterruptedException {
-    int bootstrap = config.bootstrap ? 0 : 3;
     int milestonePropagationRetries = 0;
-    log.info("Bootstrap mode: " + bootstrap);
 
     while (true) {
       String trunk, branch;
       GetNodeInfoResponse nodeInfoResponse = getNodeInfoWithRetries();
 
-      if (bootstrap == 2 && !nodeIsSolid(nodeInfoResponse)) {
-        log.warn("Node not solid.");
-        Thread.sleep(config.unsolidDelay);
-        continue;
-      }
-
-      // Node is solid.
-      if (bootstrap == 0) {
-        log.info("Bootstrapping network.");
-        trunk = MilestoneSource.EMPTY_HASH;
-        branch = MilestoneSource.EMPTY_HASH;
-        bootstrap = 1;
-      } else if (bootstrap < 3) {
-        // Bootstrapping means creating a chain of milestones without pulling in external transactions.
-        log.info("Reusing last milestone.");
-        trunk = state.latestMilestoneHash;
-        branch = MilestoneSource.EMPTY_HASH;
-        bootstrap++;
-      } else {
+      if (!config.bootstrap) {
         if (!nodeIsSolid(nodeInfoResponse)) {
+          log.warn("Node not solid.");
+          Thread.sleep(config.unsolidDelay);
+          continue;
+        }
+        if (!nodeMatchesInternalState(nodeInfoResponse)) {
           if (attemptToRepropagateLatestMilestone(milestonePropagationRetries,
                   nodeInfoResponse.getLatestSolidSubtangleMilestoneIndex())) {
             milestonePropagationRetries++;
@@ -276,6 +265,7 @@ public class Coordinator {
           }
         }
         milestonePropagationRetries = 0;
+
         // GetTransactionsToApprove will return tips referencing latest milestone.
         GetTransactionsToApproveResponse txToApprove = getGetTransactionsToApproveResponseWithRetries();
         trunk = txToApprove.getTrunkTransaction();
@@ -285,13 +275,42 @@ public class Coordinator {
           throw new RuntimeException("Trunk & branch were not consistent!!! T: " + trunk + " B: " + branch);
         }
 
+      } else {
+        if (bootstrapStage >= 3) {
+          config.bootstrap = false;
+          continue;
+        }
+        if (bootstrapStage == 0) {
+          log.info("Bootstrapping network.");
+          trunk = MilestoneSource.EMPTY_HASH;
+          branch = MilestoneSource.EMPTY_HASH;
+          bootstrapStage = 1;
+        } else {
+          // Bootstrapping means creating a chain of milestones without pulling in external transactions.
+          log.info("Reusing last milestone.");
+          trunk = state.latestMilestoneHash;
+          branch = MilestoneSource.EMPTY_HASH;
+          bootstrapStage++;
+        }
+
+        if (bootstrapStage == 2) {
+          if (!nodeIsSolid(nodeInfoResponse)) {
+            log.warn("Node not solid.");
+            Thread.sleep(config.unsolidDelay);
+            continue;
+          } else if (!nodeMatchesInternalState(nodeInfoResponse)) {
+            log.warn("Node's solid milestone does not match Compass state: " + state.latestMilestoneIndex);
+            Thread.sleep(config.unsolidDelay);
+            continue;
+          }
+        }
       }
 
       // If all the above checks pass we are ready to issue a new milestone
       state.latestMilestoneIndex++;
 
       createAndBroadcastMilestone(trunk, branch);
-      updateDepth(bootstrap);
+      updateDepth(bootstrapStage);
       state.latestMilestoneTime = System.currentTimeMillis();
 
       // Everything went fine, now we store
