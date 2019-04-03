@@ -11,7 +11,6 @@ echo "starting remote layer calculation"
 
 echo "compare results"
 ROOT_TREE_REMOTE=`cat data/layers/layer.0.csv`
-diff ../data/layers/layer.0.csv data/layers/layer.0.csv
 if [ ${ROOT_TREE_REMOTE} = ${ROOT_TREE_LOCAL} ]; then
   echo "same";
 else
