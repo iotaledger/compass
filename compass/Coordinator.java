@@ -178,23 +178,6 @@ public class Coordinator {
     return config.inception || (nodeInfo.getLatestSolidSubtangleMilestoneIndex() == state.latestMilestoneIndex);
   }
 
-  private void broadcastLatestMilestone() throws InterruptedException {
-    if (config.broadcast) {
-      for (String tx : state.latestMilestoneTransactions) {
-        for(int i = 0; i < config.APIRetries; i++) {
-          try {
-            api.storeAndBroadcast(tx);
-            break;
-          } catch (ArgumentException e) {
-            e.printStackTrace();
-            Thread.sleep(config.APIRetryInterval);
-          }
-        }
-      }
-      log.info("Broadcast milestone: " + state.latestMilestoneIndex);
-    }
-  }
-
   /**
    * Sets up the coordinator and validates arguments
    */
@@ -387,8 +370,8 @@ public class Coordinator {
       try {
         response = api.getNodeInfo();
         break;
-      } catch (IllegalStateException | ArgumentException e) {
-        e.printStackTrace();
+      } catch (IllegalStateException | ArgumentException | IllegalAccessError e) {
+        log.error("API call failed: ", e);
         Thread.sleep(config.APIRetryInterval);
       }
     }
@@ -405,8 +388,8 @@ public class Coordinator {
       try {
         response = api.getTransactionsToApprove(depth, state.latestMilestoneHash);
         break;
-      } catch (IllegalStateException | ArgumentException e) {
-        e.printStackTrace();
+      } catch (IllegalStateException | ArgumentException | IllegalAccessError e) {
+        log.error("API call failed: ", e);
         Thread.sleep(config.APIRetryInterval);
       }
     }
@@ -423,8 +406,8 @@ public class Coordinator {
       try {
         response = api.checkConsistency(trunk, branch);
         break;
-      } catch (IllegalStateException | ArgumentException e) {
-        e.printStackTrace();
+      } catch (IllegalStateException | ArgumentException | IllegalAccessError e) {
+        log.error("API call failed: ", e);
         Thread.sleep(config.APIRetryInterval);
       }
     }
@@ -433,6 +416,29 @@ public class Coordinator {
     }
 
     return response;
+  }
+
+  private void storeAndBroadcastWithRetries(String tx) throws InterruptedException {
+    for(int i = 0; i < config.APIRetries; i++) {
+      try {
+        api.storeAndBroadcast(tx);
+        break;
+      } catch (IllegalStateException | ArgumentException | IllegalAccessError e) {
+        log.error("API call failed: ", e);
+        Thread.sleep(config.APIRetryInterval);
+      }
+    }
+
+    throw new RuntimeException("storeAndBroadcast failed, check node!");
+  }
+
+  private void broadcastLatestMilestone() throws InterruptedException {
+    if (config.broadcast) {
+      for (String tx : state.latestMilestoneTransactions) {
+        storeAndBroadcastWithRetries(tx);
+      }
+      log.info("Broadcast milestone: " + state.latestMilestoneIndex);
+    }
   }
 
   /**
