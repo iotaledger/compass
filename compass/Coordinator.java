@@ -362,12 +362,12 @@ public class Coordinator {
   private boolean validateTransactionsToApprove(String trunk, String branch) {
     if (validatorAPIs.size() > 0) {
 
-      return validatorAPIs.parallelStream().allMatch(api1 -> {
+      return validatorAPIs.parallelStream().allMatch(validatorApi -> {
         CheckConsistencyResponse response;
         try {
-          response = getCheckConsistencyResponseWithRetires(trunk, branch, api1);
+          response = getCheckConsistencyResponseWithRetires(trunk, branch, validatorApi);
           if (!response.getState()) {
-            log.error("{} reported invalid consistency: {}", api1.getHost(), response.getInfo());
+            log.error("{} reported invalid consistency: {}", validatorApi.getHost(), response.getInfo());
           }
           return response.getState();
         } catch (InterruptedException e) {
