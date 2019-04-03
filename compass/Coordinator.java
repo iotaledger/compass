@@ -422,7 +422,7 @@ public class Coordinator {
     for(int i = 0; i < config.APIRetries; i++) {
       try {
         api.storeAndBroadcast(tx);
-        break;
+        return;
       } catch (IllegalStateException | ArgumentException | IllegalAccessError e) {
         log.error("API call failed: ", e);
         Thread.sleep(config.APIRetryInterval);
