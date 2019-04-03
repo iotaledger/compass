@@ -207,6 +207,7 @@ public class MilestoneDatabase extends MilestoneSource {
     String bundleHash = calculateBundleHash(txs);
     txs.forEach(tx -> tx.setBundle(bundleHash));
 
+    txSiblings.setAttachmentTimestamp(System.currentTimeMillis());
     txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
     if (signatureSource.getSignatureMode() == SpongeFactory.Mode.KERL) {
       /*
