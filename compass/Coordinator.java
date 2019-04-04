@@ -178,21 +178,12 @@ public class Coordinator {
     return config.inception || (nodeInfo.getLatestSolidSubtangleMilestoneIndex() == state.latestMilestoneIndex);
   }
 
-  private void broadcastLatestMilestone() throws ArgumentException {
-    if (config.broadcast) {
-      for (String tx : state.latestMilestoneTransactions) {
-        api.storeAndBroadcast(tx);
-      }
-      log.info("Broadcast milestone: " + state.latestMilestoneIndex);
-    }
-  }
-
   /**
    * Sets up the coordinator and validates arguments
    */
-  private void setup() throws ArgumentException {
+  private void setup() throws InterruptedException {
     log.info("Setup");
-    GetNodeInfoResponse nodeInfoResponse = api.getNodeInfo();
+    GetNodeInfoResponse nodeInfoResponse = getNodeInfoWithRetries();
 
     if (config.bootstrap) {
       log.info("Bootstrapping.");
@@ -230,13 +221,13 @@ public class Coordinator {
     }
   }
 
-  private void start() throws ArgumentException, InterruptedException {
+  private void start() throws InterruptedException {
     int bootstrapStage = 0;
     int milestonePropagationRetries = 0;
 
     while (true) {
       String trunk, branch;
-      GetNodeInfoResponse nodeInfoResponse = api.getNodeInfo();
+      GetNodeInfoResponse nodeInfoResponse = getNodeInfoWithRetries();
 
       if (!config.bootstrap) {
         if (!nodeIsSolid(nodeInfoResponse)) {
@@ -260,7 +251,7 @@ public class Coordinator {
         milestonePropagationRetries = 0;
 
         // GetTransactionsToApprove will return tips referencing latest milestone.
-        GetTransactionsToApproveResponse txToApprove = api.getTransactionsToApprove(depth, state.latestMilestoneHash);
+        GetTransactionsToApproveResponse txToApprove = getGetTransactionsToApproveResponseWithRetries();
         trunk = txToApprove.getTrunkTransaction();
         branch = txToApprove.getBranchTransaction();
 
@@ -333,7 +324,7 @@ public class Coordinator {
     depth = nextDepth;
   }
 
-  private void createAndBroadcastMilestone(String trunk, String branch) throws ArgumentException {
+  private void createAndBroadcastMilestone(String trunk, String branch) throws InterruptedException {
     log.info("Issuing milestone: " + state.latestMilestoneIndex);
     log.info("Trunk: " + trunk + " Branch: " + branch);
 
@@ -353,25 +344,101 @@ public class Coordinator {
    */
   private boolean validateTransactionsToApprove(String trunk, String branch) {
     if (validatorAPIs.size() > 0) {
-      boolean isConsistent = validatorAPIs.parallelStream().allMatch(api -> {
+
+      return validatorAPIs.parallelStream().allMatch(validatorApi -> {
         CheckConsistencyResponse response;
         try {
-          response = api.checkConsistency(trunk, branch);
+          response = getCheckConsistencyResponseWithRetires(trunk, branch, validatorApi);
           if (!response.getState()) {
-            log.error("{} reported invalid consistency: {}", api.getHost(), response.getInfo());
+            log.error("{} reported invalid consistency: {}", validatorApi.getHost(), response.getInfo());
           }
           return response.getState();
-        } catch (ArgumentException e) {
+        } catch (InterruptedException e) {
           e.printStackTrace();
           return false;
         }
       });
-
-      return isConsistent;
     }
 
     //nothing was checked so validation can't fail
     return true;
+  }
+
+  private GetNodeInfoResponse getNodeInfoWithRetries() throws InterruptedException {
+    GetNodeInfoResponse response = null;
+    for(int i = 0; i < config.APIRetries; i++) {
+      try {
+        response = api.getNodeInfo();
+        break;
+      } catch (IllegalStateException | ArgumentException | IllegalAccessError e) {
+        log.error("API call failed: ", e);
+        Thread.sleep(config.APIRetryInterval);
+      }
+    }
+    if (response == null) {
+      throw new RuntimeException("getNodeInfo failed, check node!");
+    }
+
+    return response;
+  }
+
+  private GetTransactionsToApproveResponse getGetTransactionsToApproveResponseWithRetries() throws InterruptedException {
+    GetTransactionsToApproveResponse response = null;
+    for(int i = 0; i < config.APIRetries; i++) {
+      try {
+        response = api.getTransactionsToApprove(depth, state.latestMilestoneHash);
+        break;
+      } catch (IllegalStateException | ArgumentException | IllegalAccessError e) {
+        log.error("API call failed: ", e);
+        Thread.sleep(config.APIRetryInterval);
+      }
+    }
+    if (response == null) {
+      throw new RuntimeException("getTransactionsToApprove failed, check node!");
+    }
+
+    return response;
+  }
+
+  private CheckConsistencyResponse getCheckConsistencyResponseWithRetires(String trunk, String branch, IotaAPI api) throws InterruptedException {
+    CheckConsistencyResponse response = null;
+    for(int i = 0; i < config.APIRetries; i++) {
+      try {
+        response = api.checkConsistency(trunk, branch);
+        break;
+      } catch (IllegalStateException | ArgumentException | IllegalAccessError e) {
+        log.error("API call failed: ", e);
+        Thread.sleep(config.APIRetryInterval);
+      }
+    }
+    if (response == null) {
+      throw new RuntimeException("checkConsistency failed, check node!");
+    }
+
+    return response;
+  }
+
+  private void storeAndBroadcastWithRetries(String tx) throws InterruptedException {
+    for(int i = 0; i < config.APIRetries; i++) {
+      try {
+        api.storeAndBroadcast(tx);
+        return;
+      } catch (IllegalStateException | ArgumentException | IllegalAccessError e) {
+        log.error("API call failed: ", e);
+        Thread.sleep(config.APIRetryInterval);
+      }
+    }
+
+    throw new RuntimeException("storeAndBroadcast failed, check node!");
+  }
+
+  private void broadcastLatestMilestone() throws InterruptedException {
+    if (config.broadcast) {
+      for (String tx : state.latestMilestoneTransactions) {
+        storeAndBroadcastWithRetries(tx);
+      }
+      log.info("Broadcast milestone: " + state.latestMilestoneIndex);
+    }
   }
 
   /**
@@ -381,9 +448,9 @@ public class Coordinator {
    * @param milestonePropagationRetries number of propagation retries that have already taken place
    * @param lsm latest solid milestone index
    * @return {@code true} if the milestone was broadcasted again else return false
-   * @throws ArgumentException upon an API problem
+   * @throws InterruptedException upon an API problem
    */
-  private boolean attemptToRepropagateLatestMilestone(int milestonePropagationRetries, int lsm) throws ArgumentException {
+  private boolean attemptToRepropagateLatestMilestone(int milestonePropagationRetries, int lsm) throws InterruptedException {
     // Bail if we attempted to broadcast the latest Milestone too many times
     if (milestonePropagationRetries > config.propagationRetriesThreshold) {
       return false;
