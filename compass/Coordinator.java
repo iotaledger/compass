@@ -258,7 +258,7 @@ public class Coordinator {
         }
         branch = txToApprove.getBranchTransaction();
         if (branch == null || branch.isEmpty()) {
-          throw new RuntimeException("GTTA failed ot return branch");
+          throw new RuntimeException("GTTA failed to return branch");
         }
 
         if (!validateTransactionsToApprove(trunk, branch)) {
