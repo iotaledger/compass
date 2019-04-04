@@ -254,7 +254,7 @@ public class Coordinator {
         GetTransactionsToApproveResponse txToApprove = getGetTransactionsToApproveResponseWithRetries();
         trunk = txToApprove.getTrunkTransaction();
         if (trunk == null || trunk.isEmpty()) {
-          throw new RuntimeException("GTTA failed ot return trunk");
+          throw new RuntimeException("GTTA failed to return trunk");
         }
         branch = txToApprove.getBranchTransaction();
         if (branch == null || branch.isEmpty()) {
