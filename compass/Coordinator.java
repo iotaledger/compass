@@ -253,7 +253,13 @@ public class Coordinator {
         // GetTransactionsToApprove will return tips referencing latest milestone.
         GetTransactionsToApproveResponse txToApprove = getGetTransactionsToApproveResponseWithRetries();
         trunk = txToApprove.getTrunkTransaction();
+        if (trunk == null || trunk.isEmpty()) {
+          throw new RuntimeException("GTTA failed to return trunk");
+        }
         branch = txToApprove.getBranchTransaction();
+        if (branch == null || branch.isEmpty()) {
+          throw new RuntimeException("GTTA failed to return branch");
+        }
 
         if (!validateTransactionsToApprove(trunk, branch)) {
           throw new RuntimeException("Trunk & branch were not consistent!!! T: " + trunk + " B: " + branch);
@@ -354,8 +360,7 @@ public class Coordinator {
           }
           return response.getState();
         } catch (InterruptedException e) {
-          e.printStackTrace();
-          return false;
+          throw new RuntimeException("Validation of transactions to approve failed", e);
         }
       });
     }
