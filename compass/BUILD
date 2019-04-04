@@ -10,6 +10,7 @@ COORDINATOR_RUNTIME_DEPS = [
 java_binary(
     name = "layers_calculator",
     srcs = ["LayersCalculator.java"],
+    classpath_resources = ["simplelogger.properties"],
     main_class = "org.iota.compass.LayersCalculator",
     visibility = ["//visibility:public"],
     runtime_deps = COORDINATOR_RUNTIME_DEPS,
@@ -28,6 +29,7 @@ java_binary(
 java_binary(
     name = "shadowing_coordinator",
     srcs = ["ShadowingCoordinator.java"],
+    classpath_resources = ["simplelogger.properties"],
     main_class = "org.iota.compass.ShadowingCoordinator",
     visibility = ["//visibility:public"],
     runtime_deps = COORDINATOR_RUNTIME_DEPS,
@@ -47,6 +49,7 @@ java_binary(
 java_binary(
     name = "coordinator",
     srcs = ["Coordinator.java"],
+    classpath_resources = ["simplelogger.properties"],
     main_class = "org.iota.compass.Coordinator",
     visibility = ["//visibility:public"],
     runtime_deps = COORDINATOR_RUNTIME_DEPS,
