@@ -5,7 +5,7 @@ scriptdir=$(dirname "$(readlink -f "$0")")
 
 load_config
 
-docker run -m 4G -t --net host --rm -v $scriptdir/data:/data iota/compass/docker:coordinator -Xmx3G -Xms3G coordinator_deploy.jar \
+docker run -t --net host --rm -v $scriptdir/data:/data iota/compass/docker:coordinator coordinator_deploy.jar \
 	-layers /data/layers \
 	-statePath /data/compass.state \
 	-sigMode $sigMode \
