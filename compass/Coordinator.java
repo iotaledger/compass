@@ -360,8 +360,7 @@ public class Coordinator {
           }
           return response.getState();
         } catch (InterruptedException e) {
-          e.printStackTrace();
-          return false;
+          throw new RuntimeException("Validation of transactions to approve failed", e);
         }
       });
     }
