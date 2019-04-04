@@ -39,12 +39,13 @@ import org.iota.compass.crypto.KerlPoW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -75,18 +76,46 @@ public class MilestoneDatabase extends MilestoneSource {
     this.powMode = powMode;
   }
 
+  private static List<String> readInBatches(BufferedReader br, int batchSize, int totalSize) throws IOException {
+    List<String> result = new ArrayList<>(totalSize);
+    for (int i = 1; i < totalSize + batchSize; i += batchSize) {
+      List<String> batch = readLinesInBatches(br, batchSize);
+      result.addAll(batch);
+      if (batch.size() < batchSize) {
+        return result;
+      }
+    }
+    return result;
+  }
+
+  private static List<String> readLinesInBatches(BufferedReader br, int batchSize) throws IOException {
+    List<String> result = new ArrayList<>(batchSize);
+    for (int i = 1; i < batchSize; i++) {
+      String line = br.readLine();
+      if (line != null) {
+        result.add(line);
+      } else {
+        return result;
+      }
+    }
+    return result;
+  }
+
+
   private static List<List<String>> loadLayers(String path) throws IOException {
     Map<Integer, List<String>> result = new HashMap<>();
+    int batchSize = 1024;
 
-    Files.newDirectoryStream(Paths.get(path))
-        .forEach((Path p) -> {
-          int idx = Integer.parseInt(p.toString().split("\\.")[1]);
-          try {
-            result.put(idx, Files.readAllLines(p));
-          } catch (IOException e) {
-            log.error("failed to load layers from: {}", path, e);
-          }
-        });
+    for (Path p : Files.newDirectoryStream(Paths.get(path))) {
+      int idx = Integer.parseInt(p.toString().split("\\.")[1]);
+      int totalSize = 1 << idx;
+      try {
+        BufferedReader br = new BufferedReader(new FileReader(p.toString()));
+        result.put(idx, readInBatches(br, batchSize, totalSize));
+      } catch (IOException e) {
+        log.error("failed to load layers from: {}", path, e);
+      }
+    }
 
     return IntStream.range(0, result.size())
         .mapToObj(result::get)
