@@ -78,7 +78,7 @@ public class MilestoneDatabase extends MilestoneSource {
 
   private static List<String> readInBatches(BufferedReader br, int batchSize, int totalSize) throws IOException {
     List<String> result = new ArrayList<>(totalSize);
-    for (int i = 1; i < totalSize + batchSize; i += batchSize) {
+    for (int i = 0; i < totalSize; i += batchSize) {
       List<String> batch = readLinesInBatches(br, batchSize);
       result.addAll(batch);
       if (batch.size() < batchSize) {
@@ -90,7 +90,7 @@ public class MilestoneDatabase extends MilestoneSource {
 
   private static List<String> readLinesInBatches(BufferedReader br, int batchSize) throws IOException {
     List<String> result = new ArrayList<>(batchSize);
-    for (int i = 1; i < batchSize; i++) {
+    for (int i = 0; i < batchSize; i++) {
       String line = br.readLine();
       if (line != null) {
         result.add(line);
