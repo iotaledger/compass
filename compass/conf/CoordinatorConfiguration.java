@@ -75,4 +75,7 @@ public class CoordinatorConfiguration extends BaseConfiguration {
 
   @Parameter(names = "-APIRetryInterval", description = "Interval (in milliseconds) to wait between failing API attempts.")
   public int APIRetryInterval = 1000;
+
+  @Parameter(names = "-referenceLastMilestone", description = "Generate a milestone that references the last and then exit")
+  public boolean referenceLastMilestone = false;
 }
