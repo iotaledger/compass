@@ -76,42 +76,28 @@ public class MilestoneDatabase extends MilestoneSource {
     this.powMode = powMode;
   }
 
-  private static List<String> readInBatches(BufferedReader br, int batchSize, int totalSize) throws IOException {
+  private static List<String> readLines(Path p, int totalSize) throws IOException {
+    BufferedReader br = new BufferedReader(new FileReader(p.toString()));
     List<String> result = new ArrayList<>(totalSize);
-    for (int i = 0; i < totalSize; i += batchSize) {
-      List<String> batch = readLinesInBatches(br, batchSize);
-      result.addAll(batch);
-      if (batch.size() < batchSize) {
-        return result;
-      }
-    }
+    String line;
+    do {
+        line = br.readLine();
+        if (line != null) {
+            result.add(line);
+        }
+    } while (line != null);
+
     return result;
   }
-
-  private static List<String> readLinesInBatches(BufferedReader br, int batchSize) throws IOException {
-    List<String> result = new ArrayList<>(batchSize);
-    for (int i = 0; i < batchSize; i++) {
-      String line = br.readLine();
-      if (line != null) {
-        result.add(line);
-      } else {
-        return result;
-      }
-    }
-    return result;
-  }
-
 
   private static List<List<String>> loadLayers(String path) throws IOException {
     Map<Integer, List<String>> result = new HashMap<>();
-    int batchSize = 1024;
 
     for (Path p : Files.newDirectoryStream(Paths.get(path))) {
       int idx = Integer.parseInt(p.toString().split("\\.")[1]);
       int totalSize = 1 << idx;
       try {
-        BufferedReader br = new BufferedReader(new FileReader(p.toString()));
-        result.put(idx, readInBatches(br, batchSize, totalSize));
+        result.put(idx, readLines(p, totalSize));
       } catch (IOException e) {
         log.error("failed to load layers from: {}", path, e);
       }
