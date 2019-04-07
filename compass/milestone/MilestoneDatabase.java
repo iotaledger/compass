@@ -39,15 +39,15 @@ import org.iota.compass.crypto.KerlPoW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.StreamSupport;
 
 import static jota.pow.JCurl.HASH_LENGTH;
 
@@ -76,18 +76,32 @@ public class MilestoneDatabase extends MilestoneSource {
     this.powMode = powMode;
   }
 
-  private static List<List<String>> loadLayers(String path) throws IOException {
-    Map<Integer, List<String>> result = new ConcurrentHashMap<>();
+  private static List<String> readLines(Path p, int totalSize) throws IOException {
+    BufferedReader br = new BufferedReader(new FileReader(p.toString()));
+    List<String> result = new ArrayList<>(totalSize);
+    String line;
+    do {
+        line = br.readLine();
+        if (line != null) {
+            result.add(line);
+        }
+    } while (line != null);
 
-    StreamSupport.stream(Files.newDirectoryStream(Paths.get(path)).spliterator(), true)
-        .forEach((Path p) -> {
-          int idx = Integer.parseInt(p.toString().split("\\.")[1]);
-          try {
-            result.put(idx, Files.readAllLines(p));
-          } catch (IOException e) {
-            log.error("failed to load layers from: {}", path, e);
-          }
-        });
+    return result;
+  }
+
+  private static List<List<String>> loadLayers(String path) throws IOException {
+    Map<Integer, List<String>> result = new HashMap<>();
+
+    for (Path p : Files.newDirectoryStream(Paths.get(path))) {
+      int idx = Integer.parseInt(p.toString().split("\\.")[1]);
+      int totalSize = 1 << idx;
+      try {
+        result.put(idx, readLines(p, totalSize));
+      } catch (IOException e) {
+        log.error("failed to load layers from: {}", path, e);
+      }
+    }
 
     return IntStream.range(0, result.size())
         .mapToObj(result::get)
