@@ -297,9 +297,10 @@ public class Coordinator {
       }
 
       // If all the above checks pass we are ready to issue a new milestone
-      state.latestMilestoneIndex++;
-
       createAndBroadcastMilestone(trunk, branch);
+
+      // We increase the latest Milestone Index
+      state.latestMilestoneIndex++;
       updateDepth(bootstrapStage);
       state.latestMilestoneTime = System.currentTimeMillis();
 
