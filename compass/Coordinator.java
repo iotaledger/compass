@@ -107,7 +107,7 @@ public class Coordinator {
       // and to allow overriding state file using `-index` flag
     if (config.bootstrap || config.index != null) {
       state = new CoordinatorState();
-      state.latestMilestoneIndex = config.index == null ? 0 : config.index;
+      state.latestMilestoneIndex = config.index == null ? 0 : config.index - 1;
     } else {
       try {
         state = loadState(config.statePath);
@@ -193,7 +193,7 @@ public class Coordinator {
       }
     }
 
-    log.info("Starting index from: " + state.latestMilestoneIndex);
+    log.info("Starting index from: " + state.latestMilestoneIndex + 1);
     if (nodeInfoResponse.getLatestMilestoneIndex() > state.latestMilestoneIndex && !config.inception) {
       throw new RuntimeException("Provided index is lower than latest seen milestone: " +
               nodeInfoResponse.getLatestMilestoneIndex() + " vs " + state.latestMilestoneIndex);
