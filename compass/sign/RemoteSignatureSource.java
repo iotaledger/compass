@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLException;
 import java.io.File;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
  * An implementation of a SignatureSource that talks to a remote gRPC service.
@@ -42,6 +43,7 @@ public class RemoteSignatureSource extends SignatureSource {
     this(NettyChannelBuilder
         .forTarget(uri)
         .useTransportSecurity()
+        .idleTimeout(5, TimeUnit.SECONDS)
         .sslContext(
             buildSslContext(trustCertCollectionFilePath, clientCertChainFilePath, clientPrivateKeyFilePath))
         .build());
@@ -54,7 +56,7 @@ public class RemoteSignatureSource extends SignatureSource {
    * @param uri the URI of the host to connect to
    */
   public RemoteSignatureSource(String uri) {
-    this(ManagedChannelBuilder.forTarget(uri).usePlaintext().build());
+    this(ManagedChannelBuilder.forTarget(uri).usePlaintext().idleTimeout(5, TimeUnit.SECONDS).build());
   }
 
   private RemoteSignatureSource(ManagedChannel channel) {
