@@ -250,15 +250,23 @@ public class Coordinator {
         }
         milestonePropagationRetries = 0;
 
-        // GetTransactionsToApprove will return tips referencing latest milestone.
-        GetTransactionsToApproveResponse txToApprove = getGetTransactionsToApproveResponseWithRetries();
-        trunk = txToApprove.getTrunkTransaction();
-        if (trunk == null || trunk.isEmpty()) {
-          throw new RuntimeException("GTTA failed to return trunk");
+        //if special referencing mode
+        if (config.referenceLastMilestone) {
+          trunk = state.latestMilestoneHash;
+          branch = state.latestMilestoneHash;
         }
-        branch = txToApprove.getBranchTransaction();
-        if (branch == null || branch.isEmpty()) {
-          throw new RuntimeException("GTTA failed to return branch");
+        //normal flow
+        else {
+          // GetTransactionsToApprove will return tips referencing latest milestone.
+          GetTransactionsToApproveResponse txToApprove = getGetTransactionsToApproveResponseWithRetries();
+          trunk = txToApprove.getTrunkTransaction();
+          if (trunk == null || trunk.isEmpty()) {
+            throw new RuntimeException("GTTA failed to return trunk");
+          }
+          branch = txToApprove.getBranchTransaction();
+          if (branch == null || branch.isEmpty()) {
+            throw new RuntimeException("GTTA failed to return branch");
+          }
         }
 
         if (!validateTransactionsToApprove(trunk, branch)) {
@@ -313,7 +321,17 @@ public class Coordinator {
         throw new RuntimeException(e);
       }
 
-      Thread.sleep(milestoneTick);
+      //if special referencing mode
+      if (config.referenceLastMilestone) {
+        //exit compass
+        log.info("Referencing milestone broadcasted. Please validate manually whether it was recieved.");
+        log.info("Gracefully exiting compass");
+        return;
+      }
+      //normal mode
+      else {
+        Thread.sleep(milestoneTick);
+      }
     }
   }
 
