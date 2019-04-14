@@ -26,14 +26,10 @@
 package org.iota.compass;
 
 import com.beust.jcommander.JCommander;
-import jota.IotaAPI;
-import jota.dto.response.CheckConsistencyResponse;
-import jota.dto.response.GetNodeInfoResponse;
-import jota.dto.response.GetTransactionsToApproveResponse;
-import jota.error.ArgumentException;
-import jota.model.Transaction;
+
 import org.iota.compass.conf.CoordinatorConfiguration;
 import org.iota.compass.conf.CoordinatorState;
+import org.iota.compass.exceptions.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +39,13 @@ import java.net.URL;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import jota.IotaAPI;
+import jota.dto.response.CheckConsistencyResponse;
+import jota.dto.response.GetNodeInfoResponse;
+import jota.dto.response.GetTransactionsToApproveResponse;
+import jota.error.ArgumentException;
+import jota.model.Transaction;
 
 public class Coordinator {
   private static final Logger log = LoggerFactory.getLogger(Coordinator.class);
@@ -226,6 +229,8 @@ public class Coordinator {
     int milestonePropagationRetries = 0;
 
     while (true) {
+      //assume that we will be calling gtta
+      boolean isReferencingLastMilestone = false;
       String trunk, branch;
       GetNodeInfoResponse nodeInfoResponse = getNodeInfoWithRetries();
 
@@ -258,14 +263,24 @@ public class Coordinator {
         //normal flow
         else {
           // GetTransactionsToApprove will return tips referencing latest milestone.
-          GetTransactionsToApproveResponse txToApprove = getGetTransactionsToApproveResponseWithRetries();
-          trunk = txToApprove.getTrunkTransaction();
-          if (trunk == null || trunk.isEmpty()) {
-            throw new RuntimeException("GTTA failed to return trunk");
-          }
-          branch = txToApprove.getBranchTransaction();
-          if (branch == null || branch.isEmpty()) {
-            throw new RuntimeException("GTTA failed to return branch");
+          GetTransactionsToApproveResponse txToApprove = null;
+          try {
+            txToApprove = getGetTransactionsToApproveResponseWithRetries();
+
+            trunk = txToApprove.getTrunkTransaction();
+            if (trunk == null || trunk.isEmpty()) {
+              throw new RuntimeException("GTTA failed to return trunk");
+            }
+            branch = txToApprove.getBranchTransaction();
+            if (branch == null || branch.isEmpty()) {
+              throw new RuntimeException("GTTA failed to return branch");
+            }
+          } catch (TimeoutException e) {
+            log.warn("Due to timeout we will now reference last milestone");
+            trunk = state.latestMilestoneHash;
+            branch = state.latestMilestoneHash;
+            //gtta was not used so we set this flag to true
+            isReferencingLastMilestone = true;
           }
         }
 
@@ -308,7 +323,7 @@ public class Coordinator {
       state.latestMilestoneIndex++;
 
       createAndBroadcastMilestone(trunk, branch);
-      updateDepth(bootstrapStage);
+      updateDepth(bootstrapStage, isReferencingLastMilestone);
       state.latestMilestoneTime = System.currentTimeMillis();
 
       // Everything went fine, now we store
@@ -335,7 +350,12 @@ public class Coordinator {
     }
   }
 
-  private void updateDepth(int bootstrap) {
+  private void updateDepth(int bootstrap, boolean minimizeDepth) {
+    if (minimizeDepth) {
+      depth = 1;
+      return;
+    }
+
     int nextDepth;
     if (bootstrap >= 3) {
       nextDepth = getNextDepth(depth, state.latestMilestoneTime);
@@ -405,15 +425,22 @@ public class Coordinator {
     return response;
   }
 
-  private GetTransactionsToApproveResponse getGetTransactionsToApproveResponseWithRetries() throws InterruptedException {
+  private GetTransactionsToApproveResponse getGetTransactionsToApproveResponseWithRetries() throws
+          TimeoutException, InterruptedException {
     GetTransactionsToApproveResponse response = null;
     for(int i = 0; i < config.APIRetries; i++) {
       try {
         response = api.getTransactionsToApprove(depth, state.latestMilestoneHash);
         break;
-      } catch (IllegalStateException | ArgumentException | IllegalAccessError e) {
+      } catch (IllegalStateException | IllegalAccessError e) {
         log.error("API call failed: ", e);
         Thread.sleep(config.APIRetryInterval);
+      }
+      catch  (ArgumentException e) {
+        log.error("There was a problem processing Get Transactions To Approve: ", e);
+        if (e.getMessage().contains("exceeded timeout")) {
+          throw new TimeoutException("Get Transactions To Approve call timed out", e);
+        }
       }
     }
     if (response == null) {
