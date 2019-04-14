@@ -55,6 +55,7 @@ java_binary(
     runtime_deps = COORDINATOR_RUNTIME_DEPS,
     deps = [
         "//compass/conf",
+        "//compass/exceptions",
         "//compass/milestone",
         "//compass/sign:common",
         "//compass/sign:helper",
