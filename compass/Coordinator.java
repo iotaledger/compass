@@ -441,6 +441,9 @@ public class Coordinator {
         if (e.getMessage().contains("exceeded timeout")) {
           throw new TimeoutException("Get Transactions To Approve call timed out", e);
         }
+        else {
+          Thread.sleep(config.APIRetryInterval);
+        }
       }
     }
     if (response == null) {
