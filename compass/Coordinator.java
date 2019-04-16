@@ -352,7 +352,7 @@ public class Coordinator {
 
   private void updateDepth(int bootstrap, boolean minimizeDepth) {
     if (minimizeDepth) {
-      depth = 1;
+      depth = config.minDepth;
       return;
     }
 
