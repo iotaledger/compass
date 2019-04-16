@@ -51,6 +51,7 @@ public class Coordinator {
   private final CoordinatorConfiguration config;
   private CoordinatorState state;
   private List<IotaAPI> validatorAPIs;
+  private boolean shutdown;
 
   private long milestoneTick;
   private int depth;
@@ -58,6 +59,7 @@ public class Coordinator {
   private Coordinator(CoordinatorConfiguration config, CoordinatorState state, SignatureSource signatureSource) throws IOException {
     this.config = config;
     this.state = state;
+    this.shutdown = false;
     URL node = new URL(config.host);
 
     this.db = new MilestoneDatabase(config.powMode,
@@ -91,6 +93,13 @@ public class Coordinator {
       oos.writeObject(state);
       log.info("stored index {}", state.latestMilestoneIndex);
     }
+  }
+
+  private void shutdownHook() {
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      log.info("Shutting down Compass after next milestone...");
+      this.shutdown = true;
+    }, "Shutdown Hook"));
   }
 
   public static void main(String[] args) throws Exception {
@@ -224,6 +233,7 @@ public class Coordinator {
   private void start() throws InterruptedException {
     int bootstrapStage = 0;
     int milestonePropagationRetries = 0;
+    shutdownHook();
 
     while (true) {
       String trunk, branch;
@@ -257,6 +267,11 @@ public class Coordinator {
         }
         //normal flow
         else {
+          // We want to perform shutdown only when we are ready to issue the next normal milestone
+            // and the node is in sync with the latest milestone we issued.
+          if (shutdown) {
+            return;
+          }
           // GetTransactionsToApprove will return tips referencing latest milestone.
           GetTransactionsToApproveResponse txToApprove = getGetTransactionsToApproveResponseWithRetries();
           trunk = txToApprove.getTrunkTransaction();
