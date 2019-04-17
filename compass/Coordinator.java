@@ -51,6 +51,7 @@ public class Coordinator {
   private final CoordinatorConfiguration config;
   private CoordinatorState state;
   private List<IotaAPI> validatorAPIs;
+  private Thread workerThread;
   private boolean shutdown;
 
   private long milestoneTick;
@@ -99,6 +100,7 @@ public class Coordinator {
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       log.info("Shutting down Compass after next milestone...");
       this.shutdown = true;
+      this.workerThread.join();
     }, "Shutdown Hook"));
   }
 
@@ -233,6 +235,7 @@ public class Coordinator {
   private void start() throws InterruptedException {
     int bootstrapStage = 0;
     int milestonePropagationRetries = 0;
+    this.workerThread = Thread.currentThread();
     shutdownHook();
 
     while (true) {
