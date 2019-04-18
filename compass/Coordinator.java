@@ -103,7 +103,12 @@ public class Coordinator {
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       log.info("Shutting down Compass after next milestone...");
       this.shutdown = true;
-      this.workerThread.join();
+      try {
+        this.workerThread.join();
+      } catch (InterruptedException e) {
+        String msg = "Interrupted while waiting for Compass to issue next milestone.";
+        log.error(msg, e);
+      }
     }, "Shutdown Hook"));
   }
 
