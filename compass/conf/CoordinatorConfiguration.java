@@ -47,7 +47,7 @@ public class CoordinatorConfiguration extends BaseConfiguration {
   public int maxDepth = 1000;
 
   @Parameter(names = "-depthScale", description = "Time scale factor for depth decrease")
-  public float depthScale = 1.01f;
+  public float depthScale = 1.05f;
 
   @Parameter(names = "-unsolidDelay", description = "Delay if node is not solid in milliseconds")
   public int unsolidDelay = 5000;

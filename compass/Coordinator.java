@@ -137,10 +137,11 @@ public class Coordinator {
   private int getNextDepth(int currentDepth, long lastTimestamp) {
     long now = System.currentTimeMillis();
     int nextDepth;
+    long timestampDelta = now - lastTimestamp;
+    log.info("Timestamp delta: " + timestampDelta);
+    long timestampThreshold = (long) (config.depthScale * Long.valueOf(milestoneTick).floatValue());
 
-    log.info("Timestamp delta: " + ((now - lastTimestamp)));
-
-    if ((now - lastTimestamp) > ((int) (config.depthScale * Long.valueOf(milestoneTick).floatValue()))) {
+    if (timestampDelta > timestampThreshold) {
       // decrease depth as we took too long.
       nextDepth = currentDepth * 2 / 3;
     } else {
@@ -351,20 +352,14 @@ public class Coordinator {
   }
 
   private void updateDepth(int bootstrap, boolean minimizeDepth) {
-    if (minimizeDepth) {
-      depth = config.minDepth;
-      return;
-    }
-
     int nextDepth;
-    if (bootstrap >= 3) {
-      nextDepth = getNextDepth(depth, state.latestMilestoneTime);
+    if (minimizeDepth || (config.bootstrap && bootstrap < 3)) {
+      nextDepth = config.minDepth;
     } else {
-      nextDepth = depth;
+      nextDepth = getNextDepth(depth, state.latestMilestoneTime);
     }
 
     log.info("Depth: " + depth + " -> " + nextDepth);
-
     depth = nextDepth;
   }
 
