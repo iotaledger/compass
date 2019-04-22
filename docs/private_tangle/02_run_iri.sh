@@ -12,6 +12,8 @@ docker run -t --net host --rm -v $scriptdir/db:/iri/data -v $scriptdir/snapshot.
        --testnet \
        --remote \
        --testnet-coordinator $COO_ADDRESS \
+       --testnet-coordinator-security-level $security \
+       --testnet-coordinator-signature-mode $sigMode \
        --mwm $mwm \
        --milestone-start $milestoneStart \
        --milestone-keys $depth \
