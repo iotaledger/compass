@@ -3,16 +3,24 @@ package org.iota.compass;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.netty.GrpcSslContexts;
-import io.grpc.netty.NettyChannelBuilder;
+import io.grpc.okhttp.OkHttpChannelBuilder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import jota.pow.SpongeFactory;
+import org.bouncycastle.util.io.pem.PemObject;
+import org.bouncycastle.util.io.pem.PemReader;
 import org.iota.compass.proto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLException;
-import java.io.File;
+import javax.net.ssl.*;
+import java.io.*;
+import java.security.*;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -40,15 +48,67 @@ public class RemoteSignatureSource extends SignatureSource {
                                String trustCertCollectionFilePath,
                                String clientCertChainFilePath,
                                String clientPrivateKeyFilePath) throws SSLException {
-    this(NettyChannelBuilder
+    this(OkHttpChannelBuilder
         .forTarget(uri)
         .useTransportSecurity()
         .idleTimeout(5, TimeUnit.SECONDS)
-        .sslContext(
-            buildSslContext(trustCertCollectionFilePath, clientCertChainFilePath, clientPrivateKeyFilePath))
+        .sslSocketFactory(createClientCertSslSocketFactory(trustCertCollectionFilePath, clientCertChainFilePath, clientPrivateKeyFilePath))
         .build());
   }
 
+  private static PrivateKey createPrivateKeyFromPemFile(final String keyFileName) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException {
+      byte[] pemContent;
+      try (PemReader pemReader = new PemReader(new FileReader(keyFileName))) {
+          PemObject pemObject = pemReader.readPemObject();
+          pemContent = pemObject.getContent();
+      }
+      PKCS8EncodedKeySpec encodedKeySpec = new PKCS8EncodedKeySpec(pemContent);
+      KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+      return keyFactory.generatePrivate(encodedKeySpec);
+  }
+
+  private static SSLSocketFactory createClientCertSslSocketFactory(String trustCertCollectionFilePath,
+                                                            String clientCertChainFilePath,
+                                                            String clientPrivateKeyFilePath ) throws RuntimeException {
+      try {
+          KeyStore appKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+          CertificateFactory cf = CertificateFactory.getInstance("X.509");
+          appKeyStore.load(null, null);
+
+          // Import X509 client cert in KeyStore
+          X509Certificate clientCert;
+          try (InputStream is = new FileInputStream(new File(clientCertChainFilePath))) {
+              clientCert = (X509Certificate) cf.generateCertificate(is);
+              appKeyStore.setCertificateEntry("clientCert", clientCert);
+          }
+
+          // Import and associate PrivateKey to client cert
+          PrivateKey clientKey = createPrivateKeyFromPemFile(clientPrivateKeyFilePath);
+          appKeyStore.setKeyEntry("clientKey", clientKey, null, new Certificate[]{clientCert});
+
+          // Import CA
+          try (InputStream is = new FileInputStream(new File(trustCertCollectionFilePath))) {
+              X509Certificate CA = (X509Certificate) cf.generateCertificate(is);
+              appKeyStore.setCertificateEntry("CA", CA);
+          }
+
+          // Initialize TrustManager against KeyStore
+          TrustManagerFactory tm = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+          tm.init(appKeyStore);
+
+          // Initialize KeyManager against KeyStore
+          KeyManagerFactory km = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+          km.init(appKeyStore, null);
+
+          // Finally build SSL Context
+          SSLContext context = SSLContext.getInstance("TLS");
+          context.init(km.getKeyManagers(), tm.getTrustManagers(), null);
+
+          return context.getSocketFactory();
+      } catch (Exception e) {
+          throw new RuntimeException("Error building TLS context", e);
+      }
+  }
 
   /**
    * Constructs a RemoteSignatureSource using an *unencrypted* gRPC channel.
