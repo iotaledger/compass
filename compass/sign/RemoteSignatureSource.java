@@ -57,7 +57,7 @@ public class RemoteSignatureSource extends SignatureSource {
   }
 
   private static PrivateKey createPrivateKeyFromPemFile(final String keyFileName) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException {
-      byte []pemContent;
+      byte[] pemContent;
       try (PemReader pemReader = new PemReader(new FileReader(keyFileName))) {
           PemObject pemObject = pemReader.readPemObject();
           pemContent = pemObject.getContent();
