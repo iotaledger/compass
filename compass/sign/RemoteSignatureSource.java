@@ -52,22 +52,22 @@ public class RemoteSignatureSource extends SignatureSource {
         .forTarget(uri)
         .useTransportSecurity()
         .idleTimeout(5, TimeUnit.SECONDS)
-        .sslSocketFactory(ClientCertSslSocketFactory(trustCertCollectionFilePath, clientCertChainFilePath, clientPrivateKeyFilePath))
+        .sslSocketFactory(createClientCertSslSocketFactory(trustCertCollectionFilePath, clientCertChainFilePath, clientPrivateKeyFilePath))
         .build());
   }
 
   private static PrivateKey createPrivateKeyFromPemFile(final String keyFileName) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException {
-      PemReader pemReader = new PemReader(new FileReader(keyFileName));
-      PemObject pemObject = pemReader.readPemObject();
-      byte[] pemContent = pemObject.getContent();
-      pemReader.close();
+      byte []pemContent;
+      try (PemReader pemReader = new PemReader(new FileReader(keyFileName))) {
+          PemObject pemObject = pemReader.readPemObject();
+          pemContent = pemObject.getContent();
+      }
       PKCS8EncodedKeySpec encodedKeySpec = new PKCS8EncodedKeySpec(pemContent);
       KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-      PrivateKey privateKey = keyFactory.generatePrivate(encodedKeySpec);
-      return privateKey;
+      return keyFactory.generatePrivate(encodedKeySpec);
   }
 
-  public static SSLSocketFactory ClientCertSslSocketFactory(String trustCertCollectionFilePath,
+  private static SSLSocketFactory createClientCertSslSocketFactory(String trustCertCollectionFilePath,
                                                             String clientCertChainFilePath,
                                                             String clientPrivateKeyFilePath ) throws RuntimeException {
       try {
@@ -76,20 +76,21 @@ public class RemoteSignatureSource extends SignatureSource {
           appKeyStore.load(null, null);
 
           // Import X509 client cert in KeyStore
-          InputStream is = new FileInputStream(new File(clientCertChainFilePath));
-          X509Certificate clientCert = (X509Certificate) cf.generateCertificate(is);
-          appKeyStore.setCertificateEntry("clientCert", clientCert);
-          is.close();
+          X509Certificate clientCert;
+          try (InputStream is = new FileInputStream(new File(clientCertChainFilePath))) {
+              clientCert = (X509Certificate) cf.generateCertificate(is);
+              appKeyStore.setCertificateEntry("clientCert", clientCert);
+          }
 
           // Import and associate PrivateKey to client cert
           PrivateKey clientKey = createPrivateKeyFromPemFile(clientPrivateKeyFilePath);
           appKeyStore.setKeyEntry("clientKey", clientKey, null, new Certificate[]{clientCert});
 
           // Import CA
-          is = new FileInputStream(new File(trustCertCollectionFilePath));
-          X509Certificate CA = (X509Certificate) cf.generateCertificate(is);
-          appKeyStore.setCertificateEntry("CA", CA);
-          is.close();
+          try (InputStream is = new FileInputStream(new File(trustCertCollectionFilePath))) {
+              X509Certificate CA = (X509Certificate) cf.generateCertificate(is);
+              appKeyStore.setCertificateEntry("CA", CA);
+          }
 
           // Initialize TrustManager against KeyStore
           TrustManagerFactory tm = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
