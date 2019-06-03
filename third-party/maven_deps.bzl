@@ -132,7 +132,7 @@ def maven_jars():
         name = "com_google_j2objc_j2objc_annotations",
         artifact = "com.google.j2objc:j2objc-annotations:1.1",
         repository = "https://jcenter.bintray.com/",
-        sha1 = "976d8d30bebc251db406f2bdb3eb01962b5685b3",
+        sha1 = "ed28ded51a8b1c6b112568def5f4b455e6809019",
     )
 
     # org.iota:jota:1.0.0-beta3
