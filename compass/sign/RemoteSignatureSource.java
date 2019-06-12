@@ -2,6 +2,7 @@ package org.iota.compass;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.StatusRuntimeException;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.SslContext;
@@ -22,7 +23,8 @@ import java.util.concurrent.TimeUnit;
 public class RemoteSignatureSource extends SignatureSource {
   private static final Logger log = LoggerFactory.getLogger(RemoteSignatureSource.class);
 
-  private final SignatureSourceGrpc.SignatureSourceBlockingStub serviceStub;
+  private SignatureSourceGrpc.SignatureSourceBlockingStub serviceStub;
+  private final ManagedChannelBuilder channelBuilder;
 
   private Optional<Integer> cachedSecurity = Optional.empty();
   private Optional<SpongeFactory.Mode> cachedSignatureMode = Optional.empty();
@@ -40,13 +42,12 @@ public class RemoteSignatureSource extends SignatureSource {
                                String trustCertCollectionFilePath,
                                String clientCertChainFilePath,
                                String clientPrivateKeyFilePath) throws SSLException {
-    this(NettyChannelBuilder
-        .forTarget(uri)
-        .useTransportSecurity()
-        .idleTimeout(5, TimeUnit.SECONDS)
-        .sslContext(
-            buildSslContext(trustCertCollectionFilePath, clientCertChainFilePath, clientPrivateKeyFilePath))
-        .build());
+
+    this.channelBuilder = getManagedChannelBuilder(
+      uri, trustCertCollectionFilePath, clientCertChainFilePath, clientPrivateKeyFilePath
+    );
+    this.serviceStub = SignatureSourceGrpc.newBlockingStub(channelBuilder.build());
+
   }
 
 
@@ -56,11 +57,28 @@ public class RemoteSignatureSource extends SignatureSource {
    * @param uri the URI of the host to connect to
    */
   public RemoteSignatureSource(String uri) {
-    this(ManagedChannelBuilder.forTarget(uri).usePlaintext().idleTimeout(5, TimeUnit.SECONDS).build());
+    this.channelBuilder = getManagedChannelBuilder(uri);
+    this.serviceStub = SignatureSourceGrpc.newBlockingStub(channelBuilder.build());
   }
 
-  private RemoteSignatureSource(ManagedChannel channel) {
-    this.serviceStub = SignatureSourceGrpc.newBlockingStub(channel);
+  private ManagedChannelBuilder getManagedChannelBuilder(String uri,
+                                                         String trustCertCollectionFilePath,
+                                                         String clientCertChainFilePath,
+                                                         String clientPrivateKeyFilePath) throws SSLException {
+    return NettyChannelBuilder
+      .forTarget(uri)
+      .idleTimeout(5, TimeUnit.SECONDS)
+      .useTransportSecurity()
+      .sslContext(
+        buildSslContext(trustCertCollectionFilePath, clientCertChainFilePath, clientPrivateKeyFilePath)
+      );
+  }
+
+  private ManagedChannelBuilder getManagedChannelBuilder(String uri) {
+    return ManagedChannelBuilder
+      .forTarget(uri)
+      .idleTimeout(5, TimeUnit.SECONDS)
+      .usePlaintext();
   }
 
   private static SslContext buildSslContext(
@@ -81,10 +99,14 @@ public class RemoteSignatureSource extends SignatureSource {
   @Override
   public String getSignature(long index, String hash) {
     log.trace("Requesting signature for index: " + index + " and hash: " + hash);
-
-    GetSignatureResponse response = serviceStub.getSignature(GetSignatureRequest.newBuilder().setIndex(index).setHash(hash).build());
-
-
+    GetSignatureResponse response;
+    try {
+      response = serviceStub.getSignature(GetSignatureRequest.newBuilder().setIndex(index).setHash(hash).build());
+    } catch (StatusRuntimeException e) {
+      // If an exception occurs we retry only once by rebuilding the gRPC client stub from a new Channel
+      serviceStub = SignatureSourceGrpc.newBlockingStub(channelBuilder.build());
+      response = serviceStub.getSignature(GetSignatureRequest.newBuilder().setIndex(index).setHash(hash).build());
+    }
     return response.getSignature();
   }
 
