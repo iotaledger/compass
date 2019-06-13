@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.net.URI;
 import java.net.URL;
+import java.security.Security;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -113,6 +114,11 @@ public class Coordinator {
   }
 
   public static void main(String[] args) throws Exception {
+
+    // Limit DNS caching for resolved and failed records to 5 seconds
+    Security.setProperty("networkaddress.cache.ttl" , "5");
+    Security.setProperty("networkaddress.cache.negative.ttl" , "5");
+
     CoordinatorConfiguration config = new CoordinatorConfiguration();
     CoordinatorState state;
 
