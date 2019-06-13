@@ -103,7 +103,10 @@ public class RemoteSignatureSource extends SignatureSource {
     try {
       response = serviceStub.getSignature(GetSignatureRequest.newBuilder().setIndex(index).setHash(hash).build());
     } catch (StatusRuntimeException e) {
-      // If an exception occurs we retry only once by rebuilding the gRPC client stub from a new Channel
+      // If an exception occurs, wait 10 seconds, and retry only once by rebuilding the gRPC client stub from a new Channel
+      try {
+        Thread.sleep(10000);
+      } catch (InterruptedException ex) {}
       serviceStub = SignatureSourceGrpc.newBlockingStub(channelBuilder.build());
       response = serviceStub.getSignature(GetSignatureRequest.newBuilder().setIndex(index).setHash(hash).build());
     }
