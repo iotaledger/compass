@@ -29,6 +29,8 @@ import com.beust.jcommander.Parameter;
 import jota.pow.SpongeFactory;
 import org.iota.compass.SignatureSourceType;
 
+import java.net.URL;
+
 public class BaseConfiguration {
   @Parameter(names = "-layers", description = "Path to folder containing Merkle Tree layers", required = true)
   public String layersPath;
@@ -45,6 +47,9 @@ public class BaseConfiguration {
   @Parameter(names = "-powMode", description = "Sponge mode to use for Proof of Work (one of CURLP81, KERL)", required = true,
       converter = SpongeModeConverter.class, validateValueWith = {POWModeValidator.class})
   public SpongeFactory.Mode powMode = SpongeFactory.Mode.CURLP81;
+
+  @Parameter(names = "-powHost", description = "Outsource CURLP81 PoW to an IRI host", required = false, converter = URLConverter.class)
+  public URL powHost = null;
 
   @Parameter(names = "-signatureSource", description = "Signature source type (can be 'inmemory' or 'remote')", converter = SignatureSourceTypeConverter.class)
   public SignatureSourceType signatureSource = SignatureSourceType.INMEMORY;

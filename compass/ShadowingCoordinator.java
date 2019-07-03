@@ -65,7 +65,7 @@ public class ShadowingCoordinator {
     this.config = config;
 
     this.db = new MilestoneDatabase(config.powMode,
-        signatureSource, config.layersPath);
+        config.powHost, signatureSource, config.layersPath);
     URL node = new URL(config.host);
     this.api = new IotaAPI.Builder()
         .protocol(node.getProtocol())

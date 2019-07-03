@@ -27,6 +27,8 @@ package org.iota.compass;
 
 import com.beust.jcommander.JCommander;
 
+import com.beust.jcommander.ParameterException;
+import jota.pow.SpongeFactory;
 import org.iota.compass.conf.CoordinatorConfiguration;
 import org.iota.compass.conf.CoordinatorState;
 import org.iota.compass.exceptions.TimeoutException;
@@ -67,7 +69,9 @@ public class Coordinator {
     URL node = new URL(config.host);
 
     this.db = new MilestoneDatabase(config.powMode,
-        signatureSource, config.layersPath);
+        config.powHost,
+        signatureSource,
+        config.layersPath);
     this.api = new IotaAPI.Builder()
         .protocol(node.getProtocol())
         .host(node.getHost())
@@ -121,6 +125,10 @@ public class Coordinator {
         .acceptUnknownOptions(true)
         .build()
         .parse(args);
+
+    if (config.powHost != null && config.powMode != SpongeFactory.Mode.CURLP81) {
+      throw new ParameterException("Remote PoW only supports CURLP81.");
+    }
 
     // We want an empty state if bootstrapping
       // and to allow overriding state file using `-index` flag

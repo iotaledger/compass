@@ -33,15 +33,14 @@ import jota.pow.ICurl;
 import jota.pow.SpongeFactory;
 import jota.pow.pearldiver.PearlDiverLocalPoW;
 import jota.utils.Converter;
-import org.iota.compass.crypto.Hasher;
-import org.iota.compass.crypto.ISS;
-import org.iota.compass.crypto.KerlPoW;
+import org.iota.compass.crypto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -60,20 +59,22 @@ public class MilestoneDatabase extends MilestoneSource {
   private static final int LENGTH = (243 + 81 + 81 + 27 + 27 + 27) / 3;
 
   private final SpongeFactory.Mode powMode;
+  private final URL powHost;
   private final SignatureSource signatureSource;
   private final String root;
   private final List<List<String>> layers;
 
 
-  public MilestoneDatabase(SpongeFactory.Mode powMode, SignatureSource signatureSource, String path) throws IOException {
-    this(powMode, signatureSource, loadLayers(path));
+  public MilestoneDatabase(SpongeFactory.Mode powMode, URL powHost, SignatureSource signatureSource, String path) throws IOException {
+    this(powMode, powHost, signatureSource, loadLayers(path));
   }
 
-  public MilestoneDatabase(SpongeFactory.Mode powMode, SignatureSource signatureSource, List<List<String>> layers) {
+  public MilestoneDatabase(SpongeFactory.Mode powMode, URL powHost, SignatureSource signatureSource, List<List<String>> layers) {
     root = layers.get(0).get(0);
     this.layers = layers;
     this.signatureSource = signatureSource;
     this.powMode = powMode;
+    this.powHost = powHost;
   }
 
   private static List<String> readLines(Path p, int totalSize) throws IOException {
@@ -147,11 +148,15 @@ public class MilestoneDatabase extends MilestoneSource {
     return root;
   }
 
-  private IotaLocalPoW getPoWProvider() {
+  private IotaPoW getPoWProvider() {
     if (powMode == SpongeFactory.Mode.KERL) {
-      return new KerlPoW();
+      return (IotaPoW) new KerlPoW();
     } else {
-      return new PearlDiverLocalPoW();
+      if (powHost != null) {
+        return (IotaPoW) new RemoteCURLP81PoW(powHost);
+      } else {
+        return (IotaPoW) new PearlDiverLocalPoW();
+      }
     }
   }
 
@@ -168,7 +173,7 @@ public class MilestoneDatabase extends MilestoneSource {
   @Override
   public List<Transaction> createMilestone(String trunk, String branch, int index, int mwm) {
 
-    IotaLocalPoW pow = getPoWProvider();
+    IotaPoW pow = getPoWProvider();
 
     // Get the siblings in the current merkle tree
     List<String> leafSiblings = siblings(index, layers);
