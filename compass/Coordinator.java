@@ -75,14 +75,14 @@ public class Coordinator {
     this.api = new IotaAPI.Builder()
         .protocol(node.getProtocol())
         .host(node.getHost())
-        .port(Integer.toString(node.getPort()))
+        .port(node.getPort())
         .build();
 
     validatorAPIs = config.validators.stream().map(url -> {
       URI uri = URI.create(url);
       return new IotaAPI.Builder().protocol(uri.getScheme())
           .host(uri.getHost())
-          .port(Integer.toString(uri.getPort()))
+          .port(uri.getPort())
           .build();
     }).collect(Collectors.toList());
   }

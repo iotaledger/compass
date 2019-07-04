@@ -70,7 +70,7 @@ public class ShadowingCoordinator {
     this.api = new IotaAPI.Builder()
         .protocol(node.getProtocol())
         .host(node.getHost())
-        .port(Integer.toString(node.getPort()))
+        .port(node.getPort())
         .build();
   }
 

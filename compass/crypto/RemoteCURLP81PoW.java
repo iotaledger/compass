@@ -15,7 +15,7 @@ public class RemoteCURLP81PoW implements IotaRemotePoW {
     this.iotaAPIBuilder = new IotaAPI.Builder()
             .protocol(powHost.getProtocol())
             .host(powHost.getHost())
-            .port(String.valueOf(powHost.getPort()));
+            .port(powHost.getPort());
   }
 
   @Override
