@@ -9,19 +9,20 @@ import java.net.URL;
 
 public class RemoteCURLP81PoW implements IotaRemotePoW {
 
-  private final IotaAPI.Builder iotaAPIBuilder;
+  private final URL powHost;
 
   public RemoteCURLP81PoW(URL powHost) {
-    this.iotaAPIBuilder = new IotaAPI.Builder()
-            .protocol(powHost.getProtocol())
-            .host(powHost.getHost())
-            .port(powHost.getPort());
+    this.powHost = powHost;
   }
 
   @Override
   public String performPoW(String trytes, int minWeightMagnitude) throws ArgumentException {
     // Build API object each time, preventing network changes between PoWs
-    IotaAPI api = iotaAPIBuilder.build();
+    IotaAPI api = new IotaAPI.Builder()
+            .protocol(powHost.getProtocol())
+            .host(powHost.getHost())
+            .port(powHost.getPort())
+            .build();
     Transaction txSiblings = Transaction.asTransactionObject(trytes);
     GetAttachToTangleResponse res = api.attachToTangle(
             txSiblings.getTrunkTransaction(),
