@@ -26,7 +26,7 @@
 package org.iota.compass.conf;
 
 import com.beust.jcommander.Parameter;
-import jota.pow.SpongeFactory;
+import org.iota.jota.pow.SpongeFactory;
 import org.iota.compass.SignatureSourceType;
 
 import java.net.URL;

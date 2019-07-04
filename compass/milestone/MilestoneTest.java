@@ -26,9 +26,9 @@
 package org.iota.compass;
 
 import com.google.common.base.Strings;
-import jota.model.Transaction;
-import jota.pow.SpongeFactory;
-import jota.utils.Converter;
+import org.iota.jota.model.Transaction;
+import org.iota.jota.pow.SpongeFactory;
+import org.iota.jota.utils.Converter;
 import org.iota.compass.conf.LayersCalculatorConfiguration;
 import org.iota.compass.conf.SignatureSourceServerConfiguration;
 import org.iota.compass.crypto.Hasher;
@@ -45,7 +45,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-import static jota.pow.SpongeFactory.Mode.*;
+import static org.iota.jota.pow.SpongeFactory.Mode.*;
 
 /**
  * Tests milestone generation & verifies the signatures

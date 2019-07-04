@@ -25,10 +25,10 @@
 
 package org.iota.compass.crypto;
 
-import jota.IotaLocalPoW;
-import jota.pow.ICurl;
-import jota.pow.SpongeFactory;
-import jota.utils.Converter;
+import org.iota.jota.pow.IotaLocalPoW;
+import org.iota.jota.pow.ICurl;
+import org.iota.jota.pow.SpongeFactory;
+import org.iota.jota.utils.Converter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

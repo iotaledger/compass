@@ -1,5 +1,5 @@
 package org.iota.compass.crypto;
 
-import jota.IotaPoW;
+import org.iota.jota.IotaPoW;
 
 public interface IotaRemotePoW extends IotaPoW { }

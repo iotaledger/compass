@@ -28,7 +28,7 @@ package org.iota.compass;
 import com.beust.jcommander.JCommander;
 
 import com.beust.jcommander.ParameterException;
-import jota.pow.SpongeFactory;
+import org.iota.jota.pow.SpongeFactory;
 import org.iota.compass.conf.CoordinatorConfiguration;
 import org.iota.compass.conf.CoordinatorState;
 import org.iota.compass.exceptions.TimeoutException;
@@ -42,12 +42,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import jota.IotaAPI;
-import jota.dto.response.CheckConsistencyResponse;
-import jota.dto.response.GetNodeInfoResponse;
-import jota.dto.response.GetTransactionsToApproveResponse;
-import jota.error.ArgumentException;
-import jota.model.Transaction;
+import org.iota.jota.IotaAPI;
+import org.iota.jota.dto.response.CheckConsistencyResponse;
+import org.iota.jota.dto.response.GetNodeInfoResponse;
+import org.iota.jota.dto.response.GetTransactionsToApproveResponse;
+import org.iota.jota.error.ArgumentException;
+import org.iota.jota.model.Transaction;
 
 public class Coordinator {
   private static final Logger log = LoggerFactory.getLogger(Coordinator.class);

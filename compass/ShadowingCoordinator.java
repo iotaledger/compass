@@ -26,11 +26,11 @@
 package org.iota.compass;
 
 import com.beust.jcommander.JCommander;
-import jota.IotaAPI;
-import jota.dto.response.GetNodeInfoResponse;
-import jota.dto.response.GetTransactionsToApproveResponse;
-import jota.error.ArgumentException;
-import jota.model.Transaction;
+import org.iota.jota.IotaAPI;
+import org.iota.jota.dto.response.GetNodeInfoResponse;
+import org.iota.jota.dto.response.GetTransactionsToApproveResponse;
+import org.iota.jota.error.ArgumentException;
+import org.iota.jota.model.Transaction;
 import org.apache.commons.lang3.NotImplementedException;
 import org.iota.compass.conf.ShadowingCoordinatorConfiguration;
 import org.iota.compass.crypto.Hasher;

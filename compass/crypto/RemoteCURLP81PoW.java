@@ -1,9 +1,9 @@
 package org.iota.compass.crypto;
 
-import jota.IotaAPI;
-import jota.dto.response.GetAttachToTangleResponse;
-import jota.error.ArgumentException;
-import jota.model.Transaction;
+import org.iota.jota.IotaAPI;
+import org.iota.jota.dto.response.GetAttachToTangleResponse;
+import org.iota.jota.error.ArgumentException;
+import org.iota.jota.model.Transaction;
 
 import java.net.URL;
 

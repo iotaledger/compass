@@ -26,13 +26,13 @@
 package org.iota.compass;
 
 import com.google.common.base.Strings;
-import jota.IotaPoW;
-import jota.model.Bundle;
-import jota.model.Transaction;
-import jota.pow.ICurl;
-import jota.pow.SpongeFactory;
-import jota.pow.pearldiver.PearlDiverLocalPoW;
-import jota.utils.Converter;
+import org.iota.jota.IotaPoW;
+import org.iota.jota.model.Bundle;
+import org.iota.jota.model.Transaction;
+import org.iota.jota.pow.ICurl;
+import org.iota.jota.pow.SpongeFactory;
+import org.iota.jota.pow.pearldiver.PearlDiverLocalPoW;
+import org.iota.jota.utils.Converter;
 import org.iota.compass.crypto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +48,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static jota.pow.JCurl.HASH_LENGTH;
+import static org.iota.jota.pow.JCurl.HASH_LENGTH;
 
 public class MilestoneDatabase extends MilestoneSource {
 
