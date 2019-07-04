@@ -26,7 +26,7 @@
 package org.iota.compass;
 
 import com.google.common.base.Strings;
-import jota.IotaLocalPoW;
+import jota.IotaPoW;
 import jota.model.Bundle;
 import jota.model.Transaction;
 import jota.pow.ICurl;
@@ -150,12 +150,12 @@ public class MilestoneDatabase extends MilestoneSource {
 
   private IotaPoW getPoWProvider() {
     if (powMode == SpongeFactory.Mode.KERL) {
-      return (IotaPoW) new KerlPoW();
+      return new KerlPoW();
     } else {
       if (powHost != null) {
-        return (IotaPoW) new RemoteCURLP81PoW(powHost);
+        return new RemoteCURLP81PoW(powHost);
       } else {
-        return (IotaPoW) new PearlDiverLocalPoW();
+        return new PearlDiverLocalPoW();
       }
     }
   }

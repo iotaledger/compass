@@ -9,7 +9,6 @@ java_library(
         "KerlPoW.java",
         "RemoteCURLP81PoW.java",
         "IotaRemotePoW.java",
-        "IotaPoW.java",
     ],
     visibility = ["//visibility:public"],
     deps = [

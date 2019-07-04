@@ -1,7 +1,5 @@
 package org.iota.compass.crypto;
 
-import jota.error.ArgumentException;
+import jota.IotaPoW;
 
-public interface IotaRemotePoW {
-    String performPoW(String trytes, int minWeightMagnitude) throws ArgumentException;
-}
+public interface IotaRemotePoW extends IotaPoW { }
