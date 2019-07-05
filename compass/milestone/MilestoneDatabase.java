@@ -221,13 +221,10 @@ public class MilestoneDatabase extends MilestoneSource {
 
     String hashToSign;
 
-
     //calculate the bundle hash (same for Curl & Kerl)
     String bundleHash = calculateBundleHash(txs);
     txs.forEach(tx -> tx.setBundle(bundleHash));
 
-    txSiblings.setAttachmentTimestamp(System.currentTimeMillis());
-    txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
     if (signatureSource.getSignatureMode() == SpongeFactory.Mode.KERL) {
       /*
       In the case that the signature is created using KERL, we need to ensure that there exists no 'M'(=13) in the
@@ -242,7 +239,11 @@ public class MilestoneDatabase extends MilestoneSource {
         hashContainsM = Arrays.stream(normHash).limit(ISS.NUMBER_OF_FRAGMENT_CHUNKS * signatureSource.getSecurity()).anyMatch(elem -> elem == 13);
         if (hashContainsM) {
           txSiblings.setAttachmentTimestamp(System.currentTimeMillis());
-          txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
+          Transaction tPoW = new Transaction(pow.performPoW(txSiblings.toTrytes(), mwm));
+          txSiblings.setAttachmentTimestamp(tPoW.getAttachmentTimestamp());
+          txSiblings.setAttachmentTimestampLowerBound(tPoW.getAttachmentTimestampLowerBound());
+          txSiblings.setAttachmentTimestampUpperBound(tPoW.getAttachmentTimestampUpperBound());
+          txSiblings.setNonce(tPoW.getNonce());
         }
         attempts++;
       } while (hashContainsM);
@@ -313,7 +314,11 @@ public class MilestoneDatabase extends MilestoneSource {
       tx.setTrunkTransaction(prevHash);
 
       //perform PoW
-      tx.setNonce(getPoWProvider().performPoW(tx.toTrytes(), mwm).substring(NONCE_OFFSET));
+      Transaction tPoW = new Transaction(getPoWProvider().performPoW(tx.toTrytes(), mwm));
+      tx.setAttachmentTimestamp(tPoW.getAttachmentTimestamp());
+      tx.setAttachmentTimestampLowerBound(tPoW.getAttachmentTimestampLowerBound());
+      tx.setAttachmentTimestampUpperBound(tPoW.getAttachmentTimestampUpperBound());
+      tx.setNonce(tPoW.getNonce());
       tx.setHash(Hasher.hashTrytes(powMode, tx.toTrytes()));
     });
 
