@@ -1,7 +1,7 @@
 package org.iota.compass.conf;
 
 import com.beust.jcommander.IStringConverter;
-import jota.pow.SpongeFactory;
+import org.iota.jota.pow.SpongeFactory;
 
 public class SpongeModeConverter implements IStringConverter<SpongeFactory.Mode> {
   @Override

@@ -26,22 +26,21 @@
 package org.iota.compass;
 
 import com.google.common.base.Strings;
-import jota.IotaLocalPoW;
-import jota.model.Bundle;
-import jota.model.Transaction;
-import jota.pow.ICurl;
-import jota.pow.SpongeFactory;
-import jota.pow.pearldiver.PearlDiverLocalPoW;
-import jota.utils.Converter;
-import org.iota.compass.crypto.Hasher;
-import org.iota.compass.crypto.ISS;
-import org.iota.compass.crypto.KerlPoW;
+import org.iota.jota.IotaPoW;
+import org.iota.jota.model.Bundle;
+import org.iota.jota.model.Transaction;
+import org.iota.jota.pow.ICurl;
+import org.iota.jota.pow.SpongeFactory;
+import org.iota.jota.pow.pearldiver.PearlDiverLocalPoW;
+import org.iota.jota.utils.Converter;
+import org.iota.compass.crypto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -49,7 +48,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static jota.pow.JCurl.HASH_LENGTH;
+import static org.iota.jota.pow.JCurl.HASH_LENGTH;
 
 public class MilestoneDatabase extends MilestoneSource {
 
@@ -60,20 +59,22 @@ public class MilestoneDatabase extends MilestoneSource {
   private static final int LENGTH = (243 + 81 + 81 + 27 + 27 + 27) / 3;
 
   private final SpongeFactory.Mode powMode;
+  private final URL powHost;
   private final SignatureSource signatureSource;
   private final String root;
   private final List<List<String>> layers;
 
 
-  public MilestoneDatabase(SpongeFactory.Mode powMode, SignatureSource signatureSource, String path) throws IOException {
-    this(powMode, signatureSource, loadLayers(path));
+  public MilestoneDatabase(SpongeFactory.Mode powMode, URL powHost, SignatureSource signatureSource, String path) throws IOException {
+    this(powMode, powHost, signatureSource, loadLayers(path));
   }
 
-  public MilestoneDatabase(SpongeFactory.Mode powMode, SignatureSource signatureSource, List<List<String>> layers) {
+  public MilestoneDatabase(SpongeFactory.Mode powMode, URL powHost, SignatureSource signatureSource, List<List<String>> layers) {
     root = layers.get(0).get(0);
     this.layers = layers;
     this.signatureSource = signatureSource;
     this.powMode = powMode;
+    this.powHost = powHost;
   }
 
   private static List<String> readLines(Path p, int totalSize) throws IOException {
@@ -147,11 +148,15 @@ public class MilestoneDatabase extends MilestoneSource {
     return root;
   }
 
-  private IotaLocalPoW getPoWProvider() {
+  private IotaPoW getPoWProvider() {
     if (powMode == SpongeFactory.Mode.KERL) {
       return new KerlPoW();
     } else {
-      return new PearlDiverLocalPoW();
+      if (powHost != null) {
+        return new RemoteCURLP81PoW(powHost);
+      } else {
+        return new PearlDiverLocalPoW();
+      }
     }
   }
 
@@ -168,7 +173,7 @@ public class MilestoneDatabase extends MilestoneSource {
   @Override
   public List<Transaction> createMilestone(String trunk, String branch, int index, int mwm) {
 
-    IotaLocalPoW pow = getPoWProvider();
+    IotaPoW pow = getPoWProvider();
 
     // Get the siblings in the current merkle tree
     List<String> leafSiblings = siblings(index, layers);
@@ -216,7 +221,6 @@ public class MilestoneDatabase extends MilestoneSource {
 
     String hashToSign;
 
-
     //calculate the bundle hash (same for Curl & Kerl)
     String bundleHash = calculateBundleHash(txs);
     txs.forEach(tx -> tx.setBundle(bundleHash));
@@ -237,7 +241,11 @@ public class MilestoneDatabase extends MilestoneSource {
         hashContainsM = Arrays.stream(normHash).limit(ISS.NUMBER_OF_FRAGMENT_CHUNKS * signatureSource.getSecurity()).anyMatch(elem -> elem == 13);
         if (hashContainsM) {
           txSiblings.setAttachmentTimestamp(System.currentTimeMillis());
-          txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
+          Transaction tPoW = new Transaction(pow.performPoW(txSiblings.toTrytes(), mwm));
+          txSiblings.setAttachmentTimestamp(tPoW.getAttachmentTimestamp());
+          txSiblings.setAttachmentTimestampLowerBound(tPoW.getAttachmentTimestampLowerBound());
+          txSiblings.setAttachmentTimestampUpperBound(tPoW.getAttachmentTimestampUpperBound());
+          txSiblings.setNonce(tPoW.getNonce());
         }
         attempts++;
       } while (hashContainsM);
@@ -308,7 +316,11 @@ public class MilestoneDatabase extends MilestoneSource {
       tx.setTrunkTransaction(prevHash);
 
       //perform PoW
-      tx.setNonce(getPoWProvider().performPoW(tx.toTrytes(), mwm).substring(NONCE_OFFSET));
+      Transaction tPoW = new Transaction(getPoWProvider().performPoW(tx.toTrytes(), mwm));
+      tx.setAttachmentTimestamp(tPoW.getAttachmentTimestamp());
+      tx.setAttachmentTimestampLowerBound(tPoW.getAttachmentTimestampLowerBound());
+      tx.setAttachmentTimestampUpperBound(tPoW.getAttachmentTimestampUpperBound());
+      tx.setNonce(tPoW.getNonce());
       tx.setHash(Hasher.hashTrytes(powMode, tx.toTrytes()));
     });
 
