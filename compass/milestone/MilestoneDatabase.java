@@ -219,6 +219,7 @@ public class MilestoneDatabase extends MilestoneSource {
 
     txs.add(txSiblings);
 
+    Transaction tPoW;
     String hashToSign;
 
     //calculate the bundle hash (same for Curl & Kerl)
@@ -226,7 +227,13 @@ public class MilestoneDatabase extends MilestoneSource {
     txs.forEach(tx -> tx.setBundle(bundleHash));
 
     txSiblings.setAttachmentTimestamp(System.currentTimeMillis());
-    txSiblings.setNonce(pow.performPoW(txSiblings.toTrytes(), mwm).substring(NONCE_OFFSET));
+    tPoW = new Transaction(pow.performPoW(txSiblings.toTrytes(), mwm));
+    txSiblings.setAttachmentTimestamp(tPoW.getAttachmentTimestamp());
+    txSiblings.setAttachmentTimestampLowerBound(tPoW.getAttachmentTimestampLowerBound());
+    txSiblings.setAttachmentTimestampUpperBound(tPoW.getAttachmentTimestampUpperBound());
+    txSiblings.setNonce(tPoW.getNonce());
+
+    // We need to avoid the M bug we we are signing with KERL
     if (signatureSource.getSignatureMode() == SpongeFactory.Mode.KERL) {
       /*
       In the case that the signature is created using KERL, we need to ensure that there exists no 'M'(=13) in the
@@ -241,7 +248,7 @@ public class MilestoneDatabase extends MilestoneSource {
         hashContainsM = Arrays.stream(normHash).limit(ISS.NUMBER_OF_FRAGMENT_CHUNKS * signatureSource.getSecurity()).anyMatch(elem -> elem == 13);
         if (hashContainsM) {
           txSiblings.setAttachmentTimestamp(System.currentTimeMillis());
-          Transaction tPoW = new Transaction(pow.performPoW(txSiblings.toTrytes(), mwm));
+          tPoW = new Transaction(pow.performPoW(txSiblings.toTrytes(), mwm));
           txSiblings.setAttachmentTimestamp(tPoW.getAttachmentTimestamp());
           txSiblings.setAttachmentTimestampLowerBound(tPoW.getAttachmentTimestampLowerBound());
           txSiblings.setAttachmentTimestampUpperBound(tPoW.getAttachmentTimestampUpperBound());
