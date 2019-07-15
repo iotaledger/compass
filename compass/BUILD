@@ -59,6 +59,7 @@ java_binary(
         "//compass/milestone",
         "//compass/sign:common",
         "//compass/sign:helper",
+        "//compass/sign:remote",
         "@com_beust_jcommander//jar",
         "@org_iota_jota//jar",
         "@org_slf4j_slf4j_api//jar",
