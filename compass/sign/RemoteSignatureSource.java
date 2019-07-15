@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class RemoteSignatureSource extends SignatureSource {
   private static final Logger log = LoggerFactory.getLogger(RemoteSignatureSource.class);
+  private static final String defaultCacheTtl = "5";
 
   private SignatureSourceGrpc.SignatureSourceBlockingStub serviceStub;
   private final ManagedChannelBuilder channelBuilder;
@@ -67,7 +68,7 @@ public class RemoteSignatureSource extends SignatureSource {
                                                                   String clientPrivateKeyFilePath) throws SSLException {
     String cacheTtl = Security.getProperty("networkaddress.cache.ttl");
     if (cacheTtl == null) {
-      cacheTtl = "5";
+      cacheTtl = defaultCacheTtl;
     }
     return NettyChannelBuilder
       .forTarget(uri)
@@ -81,7 +82,7 @@ public class RemoteSignatureSource extends SignatureSource {
   private ManagedChannelBuilder createPlaintextManagedChannelBuilder(String uri) {
     String cacheTtl = Security.getProperty("networkaddress.cache.ttl");
     if (cacheTtl == null) {
-      cacheTtl = "5";
+      cacheTtl = defaultCacheTtl;
     }
     return ManagedChannelBuilder
       .forTarget(uri)
