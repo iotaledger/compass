@@ -26,9 +26,9 @@
 package org.iota.compass;
 
 import com.google.common.base.Strings;
-import jota.model.Transaction;
-import jota.pow.SpongeFactory;
-import jota.utils.Converter;
+import org.iota.jota.model.Transaction;
+import org.iota.jota.pow.SpongeFactory;
+import org.iota.jota.utils.Converter;
 import org.iota.compass.conf.LayersCalculatorConfiguration;
 import org.iota.compass.conf.SignatureSourceServerConfiguration;
 import org.iota.compass.crypto.Hasher;
@@ -39,12 +39,13 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-import static jota.pow.SpongeFactory.Mode.*;
+import static org.iota.jota.pow.SpongeFactory.Mode.*;
 
 /**
  * Tests milestone generation & verifies the signatures
@@ -52,7 +53,7 @@ import static jota.pow.SpongeFactory.Mode.*;
 @RunWith(JUnit4.class)
 public class MilestoneTest {
 
-  private void runForMode(SpongeFactory.Mode powMode, SignatureSource signatureSource) {
+  private void runForMode(SpongeFactory.Mode powMode, URL powHost, SignatureSource signatureSource) {
     final int depth = 4;
     final int MWM = 4;
 
@@ -64,7 +65,7 @@ public class MilestoneTest {
 
     final List<String> addresses = layersCalculator.calculateAllAddresses();
     final List<List<String>> layers = layersCalculator.calculateAllLayers(addresses);
-    final MilestoneDatabase db = new MilestoneDatabase(powMode, signatureSource, layers);
+    final MilestoneDatabase db = new MilestoneDatabase(powMode, powHost, signatureSource, layers);
 
     for (int i = 0; i < (1 << depth); i++) {
       final List<Transaction> txs = db.createMilestone(TestUtil.nextSeed(), TestUtil.nextSeed(), i, MWM);
@@ -116,7 +117,7 @@ public class MilestoneTest {
 
     SignatureSource source = new RemoteSignatureSource("localhost:" + port);
 
-    runForMode(SpongeFactory.Mode.CURLP81, source);
+    runForMode(SpongeFactory.Mode.CURLP81, null, source);
 
     server.stop();
   }
@@ -145,7 +146,7 @@ public class MilestoneTest {
           SignatureSource source = new InMemorySignatureSource(sigMode, seed, security);
 
           System.err.println("Running: " + powMode + " : " + sigMode + " : " + security);
-          runForMode(powMode, source);
+          runForMode(powMode, null, source);
         }
       }
     }

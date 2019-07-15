@@ -7,6 +7,8 @@ java_library(
         "ISS.java",
         "ISSInPlace.java",
         "KerlPoW.java",
+        "RemoteCURLP81PoW.java",
+        "IotaRemotePoW.java",
     ],
     visibility = ["//visibility:public"],
     deps = [

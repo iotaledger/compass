@@ -9,8 +9,8 @@ COO_ADDRESS=$(cat $scriptdir/data/layers/layer.0.csv)
 
 docker pull iotaledger/iri:latest
 docker run -t --net host --rm -v $scriptdir/db:/iri/data -v $scriptdir/snapshot.txt:/snapshot.txt -p 14265 iotaledger/iri:latest \
-       --testnet \
-       --remote \
+       --testnet true \
+       --remote true \
        --testnet-coordinator $COO_ADDRESS \
        --testnet-coordinator-security-level $security \
        --testnet-coordinator-signature-mode $sigMode \

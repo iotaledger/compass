@@ -26,8 +26,8 @@
 package org.iota.compass;
 
 import com.google.common.base.Strings;
-import jota.model.Transaction;
-import jota.pow.SpongeFactory;
+import org.iota.jota.model.Transaction;
+import org.iota.jota.pow.SpongeFactory;
 
 import java.util.List;
 

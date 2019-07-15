@@ -27,6 +27,8 @@ package org.iota.compass;
 
 import com.beust.jcommander.JCommander;
 
+import com.beust.jcommander.ParameterException;
+import org.iota.jota.pow.SpongeFactory;
 import org.iota.compass.conf.CoordinatorConfiguration;
 import org.iota.compass.conf.CoordinatorState;
 import org.iota.compass.exceptions.TimeoutException;
@@ -40,12 +42,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import jota.IotaAPI;
-import jota.dto.response.CheckConsistencyResponse;
-import jota.dto.response.GetNodeInfoResponse;
-import jota.dto.response.GetTransactionsToApproveResponse;
-import jota.error.ArgumentException;
-import jota.model.Transaction;
+import org.iota.jota.IotaAPI;
+import org.iota.jota.dto.response.CheckConsistencyResponse;
+import org.iota.jota.dto.response.GetNodeInfoResponse;
+import org.iota.jota.dto.response.GetTransactionsToApproveResponse;
+import org.iota.jota.error.ArgumentException;
+import org.iota.jota.model.Transaction;
 
 public class Coordinator {
   private static final Logger log = LoggerFactory.getLogger(Coordinator.class);
@@ -67,18 +69,20 @@ public class Coordinator {
     URL node = new URL(config.host);
 
     this.db = new MilestoneDatabase(config.powMode,
-        signatureSource, config.layersPath);
+        config.powHost,
+        signatureSource,
+        config.layersPath);
     this.api = new IotaAPI.Builder()
         .protocol(node.getProtocol())
         .host(node.getHost())
-        .port(Integer.toString(node.getPort()))
+        .port(node.getPort())
         .build();
 
     validatorAPIs = config.validators.stream().map(url -> {
       URI uri = URI.create(url);
       return new IotaAPI.Builder().protocol(uri.getScheme())
           .host(uri.getHost())
-          .port(Integer.toString(uri.getPort()))
+          .port(uri.getPort())
           .build();
     }).collect(Collectors.toList());
   }
@@ -121,6 +125,10 @@ public class Coordinator {
         .acceptUnknownOptions(true)
         .build()
         .parse(args);
+
+    if (config.powHost != null && config.powMode != SpongeFactory.Mode.CURLP81) {
+      throw new ParameterException("Remote PoW only supports CURLP81.");
+    }
 
     // We want an empty state if bootstrapping
       // and to allow overriding state file using `-index` flag
