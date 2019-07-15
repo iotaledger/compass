@@ -65,9 +65,13 @@ public class RemoteSignatureSource extends SignatureSource {
                                                                   String trustCertCollectionFilePath,
                                                                   String clientCertChainFilePath,
                                                                   String clientPrivateKeyFilePath) throws SSLException {
+    String cacheTtl = Security.getProperty("networkaddress.cache.ttl");
+    if (cacheTtl == null) {
+      cacheTtl = "5";
+    }
     return NettyChannelBuilder
       .forTarget(uri)
-      .idleTimeout(Integer.valueOf(Security.getProperty("networkaddress.cache.ttl")) * 2, TimeUnit.SECONDS)
+      .idleTimeout(Integer.valueOf(cacheTtl) * 2, TimeUnit.SECONDS)
       .useTransportSecurity()
       .sslContext(
         buildSslContext(trustCertCollectionFilePath, clientCertChainFilePath, clientPrivateKeyFilePath)
@@ -75,9 +79,13 @@ public class RemoteSignatureSource extends SignatureSource {
   }
 
   private ManagedChannelBuilder createPlaintextManagedChannelBuilder(String uri) {
+    String cacheTtl = Security.getProperty("networkaddress.cache.ttl");
+    if (cacheTtl == null) {
+      cacheTtl = "5";
+    }
     return ManagedChannelBuilder
       .forTarget(uri)
-      .idleTimeout(Integer.valueOf(Security.getProperty("networkaddress.cache.ttl")) * 2, TimeUnit.SECONDS)
+      .idleTimeout(Integer.valueOf(cacheTtl) * 2, TimeUnit.SECONDS)
       .usePlaintext();
   }
 
