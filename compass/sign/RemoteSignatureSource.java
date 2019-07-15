@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class RemoteSignatureSource extends SignatureSource {
   private static final Logger log = LoggerFactory.getLogger(RemoteSignatureSource.class);
-  private static final String defaultCacheTtl = "5";
+  public static final String DEFAULT_CACHE_TTL = "5";
 
   private SignatureSourceGrpc.SignatureSourceBlockingStub serviceStub;
   private final ManagedChannelBuilder channelBuilder;
@@ -68,7 +68,7 @@ public class RemoteSignatureSource extends SignatureSource {
                                                                   String clientPrivateKeyFilePath) throws SSLException {
     String cacheTtl = Security.getProperty("networkaddress.cache.ttl");
     if (cacheTtl == null) {
-      cacheTtl = defaultCacheTtl;
+      cacheTtl = DEFAULT_CACHE_TTL;
     }
     return NettyChannelBuilder
       .forTarget(uri)
@@ -82,7 +82,7 @@ public class RemoteSignatureSource extends SignatureSource {
   private ManagedChannelBuilder createPlaintextManagedChannelBuilder(String uri) {
     String cacheTtl = Security.getProperty("networkaddress.cache.ttl");
     if (cacheTtl == null) {
-      cacheTtl = defaultCacheTtl;
+      cacheTtl = DEFAULT_CACHE_TTL;
     }
     return ManagedChannelBuilder
       .forTarget(uri)
@@ -115,7 +115,9 @@ public class RemoteSignatureSource extends SignatureSource {
       // If an exception occurs, wait 10 seconds, and retry only once by rebuilding the gRPC client stub from a new Channel
       try {
         Thread.sleep(10_000);
-      } catch (InterruptedException ex) {}
+      } catch (InterruptedException ex) {
+        // Ignore the fact that we got interrupted
+      }
       serviceStub = SignatureSourceGrpc.newBlockingStub(channelBuilder.build());
       response = serviceStub.getSignature(GetSignatureRequest.newBuilder().setIndex(index).setHash(hash).build());
     }
