@@ -6,7 +6,7 @@ import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
-import jota.pow.SpongeFactory;
+import org.iota.jota.pow.SpongeFactory;
 import org.iota.compass.proto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
