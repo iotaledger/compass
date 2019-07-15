@@ -27,7 +27,7 @@ package org.iota.compass.conf;
 
 import com.beust.jcommander.IValueValidator;
 import com.beust.jcommander.ParameterException;
-import jota.pow.SpongeFactory;
+import org.iota.jota.pow.SpongeFactory;
 
 public class POWModeValidator implements IValueValidator<SpongeFactory.Mode> {
 

@@ -132,15 +132,15 @@ def maven_jars():
         name = "com_google_j2objc_j2objc_annotations",
         artifact = "com.google.j2objc:j2objc-annotations:1.1",
         repository = "https://jcenter.bintray.com/",
-        sha1 = "976d8d30bebc251db406f2bdb3eb01962b5685b3",
+        sha1 = "ed28ded51a8b1c6b112568def5f4b455e6809019",
     )
 
-    # org.iota:jota:1.0.0-beta3
+    # org.iota:jota:1.0.0-beta6
     native.maven_jar(
         name = "org_iota_jota",
-        artifact = "org.iota:jota:1.0.0-beta3",
+        artifact = "org.iota:jota:1.0.0-beta6",
         repository = "https://jcenter.bintray.com/",
-        sha1 = "ffda9cd4c25bd92ea23503887bfe49115cb5f6b7",
+        sha1 = "5a4141395af7b307f4a5cd89e87988ccce974fd0",
     )
 
 def maven_libraries():

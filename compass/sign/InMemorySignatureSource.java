@@ -1,9 +1,9 @@
 package org.iota.compass;
 
 
-import jota.pow.JCurl;
-import jota.pow.SpongeFactory;
-import jota.utils.Converter;
+import org.iota.jota.pow.JCurl;
+import org.iota.jota.pow.SpongeFactory;
+import org.iota.jota.utils.Converter;
 import org.iota.compass.crypto.ISS;
 import org.iota.compass.crypto.ISSInPlace;
 

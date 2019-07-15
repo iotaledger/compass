@@ -27,9 +27,9 @@ package org.iota.compass;
 
 import com.beust.jcommander.JCommander;
 import com.google.common.math.IntMath;
-import jota.pow.ICurl;
-import jota.pow.SpongeFactory;
-import jota.utils.Converter;
+import org.iota.jota.pow.ICurl;
+import org.iota.jota.pow.SpongeFactory;
+import org.iota.jota.utils.Converter;
 import org.iota.compass.conf.LayersCalculatorConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

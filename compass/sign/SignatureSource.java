@@ -1,6 +1,6 @@
 package org.iota.compass;
 
-import jota.pow.SpongeFactory;
+import org.iota.jota.pow.SpongeFactory;
 
 public abstract class SignatureSource {
   /**
