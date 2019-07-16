@@ -38,6 +38,8 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.net.URI;
 import java.net.URL;
+import java.rmi.Remote;
+import java.security.Security;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -117,6 +119,11 @@ public class Coordinator {
   }
 
   public static void main(String[] args) throws Exception {
+
+    // Limit DNS caching for resolved and failed records to 5 seconds
+    Security.setProperty("networkaddress.cache.ttl" , RemoteSignatureSource.DEFAULT_CACHE_TTL);
+    Security.setProperty("networkaddress.cache.negative.ttl" , RemoteSignatureSource.DEFAULT_CACHE_TTL);
+
     CoordinatorConfiguration config = new CoordinatorConfiguration();
     CoordinatorState state;
 
