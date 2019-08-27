@@ -55,7 +55,8 @@ public class CoordinatorConfiguration extends BaseConfiguration {
   @Parameter(names = "-inception", description = "Only use this if you know what you're doing.")
   public boolean inception = false;
 
-  @Parameter(names = "-index", description = "Starting milestone index (inclusive)")
+  @Parameter(names = "-index", description = "Manually feed the current latest solid milestone index of IRI." +
+          " So the next milestone will be index +1")
   public Integer index;
 
   @Parameter(names = "-validator", description = "Validator nodes to use")
