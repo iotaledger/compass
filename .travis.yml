@@ -12,7 +12,7 @@ os:
 
 env:
   global:
-    - V=0.28.1
+    - V=0.28.0
   matrix:
     - TEST=bazel
     - TEST=inMemoryBootstrap
