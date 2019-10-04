@@ -331,6 +331,7 @@ public class Coordinator {
       state.latestMilestoneIndex++;
 
       createAndBroadcastMilestone(trunk, branch);
+      state.latestMilestoneTime = System.currentTimeMillis();
 
       // Everything went fine, now we store
       try {

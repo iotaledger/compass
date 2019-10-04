@@ -33,6 +33,7 @@ public class CoordinatorState implements Serializable {
 
   public int latestMilestoneIndex;
   public String latestMilestoneHash;
+  public long latestMilestoneTime;
   public List<String> latestMilestoneTransactions = Collections.EMPTY_LIST;
 
 }
