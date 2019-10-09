@@ -159,36 +159,6 @@ public class Coordinator {
   }
 
   /**
-   * Computes the next depth to use for getTransactionsToApprove call.
-   *
-   * @param currentDepth tip selection depth from the current round
-   * @param lastTimestamp when the current round started
-   * @return depth for the next round
-   */
-  private int getNextDepth(int currentDepth, long lastTimestamp) {
-    long now = System.currentTimeMillis();
-    int nextDepth;
-
-    log.info("Timestamp delta: " + ((now - lastTimestamp)));
-
-    if ((now - lastTimestamp) > ((int) (config.depthScale * Long.valueOf(milestoneTick).floatValue()))) {
-      // decrease depth as we took too long.
-      nextDepth = currentDepth * 2 / 3;
-    } else {
-      // increase depth as we seem to have room for growth
-      nextDepth = currentDepth * 4 / 3;
-    }
-
-    if (nextDepth < config.minDepth) {
-      nextDepth = config.minDepth;
-    } else if (nextDepth > config.maxDepth) {
-      nextDepth = config.maxDepth;
-    }
-
-    return nextDepth;
-  }
-
-  /**
    * Checks that node is solid, bootstrapped and on latest milestone.
    *
    * @param nodeInfo response from node API call
@@ -241,10 +211,10 @@ public class Coordinator {
 
 
     depth = config.depth;
-    if (depth <= 0) {
-      throw new IllegalArgumentException("depth must be > 0");
+    if (depth < 0) {
+      throw new IllegalArgumentException("depth must be >= 0");
     }
-    log.info("Setting initial depth to: " + depth);
+    log.info("Setting depth to: " + depth);
 
     log.info("Validating Coordinator addresses.");
     if (!Objects.equals(nodeInfoResponse.getCoordinatorAddress(), db.getRoot())) {
@@ -361,7 +331,6 @@ public class Coordinator {
       state.latestMilestoneIndex++;
 
       createAndBroadcastMilestone(trunk, branch);
-      updateDepth(bootstrapStage, isReferencingLastMilestone);
       state.latestMilestoneTime = System.currentTimeMillis();
 
       // Everything went fine, now we store
@@ -386,24 +355,6 @@ public class Coordinator {
         Thread.sleep(milestoneTick);
       }
     }
-  }
-
-  private void updateDepth(int bootstrap, boolean minimizeDepth) {
-    if (minimizeDepth) {
-      depth = config.minDepth;
-      return;
-    }
-
-    int nextDepth;
-    if (bootstrap >= 3) {
-      nextDepth = getNextDepth(depth, state.latestMilestoneTime);
-    } else {
-      nextDepth = depth;
-    }
-
-    log.info("Depth: " + depth + " -> " + nextDepth);
-
-    depth = nextDepth;
   }
 
   private void createAndBroadcastMilestone(String trunk, String branch) throws InterruptedException {
