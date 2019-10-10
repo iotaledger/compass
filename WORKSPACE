@@ -4,18 +4,28 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "io_bazel_rules_docker",
-    sha256 = "29d109605e0d6f9c892584f07275b8c9260803bf0c6fcb7de2623b2bedc910bd",
-    strip_prefix = "rules_docker-0.5.1",
-    url = "https://github.com/bazelbuild/rules_docker/archive/v0.5.1.tar.gz",
+    sha256 = "e513c0ac6534810eb7a14bf025a0f159726753f97f74ab7863c650d26e01d677",
+    strip_prefix = "rules_docker-0.9.0",
+    urls = ["https://github.com/bazelbuild/rules_docker/releases/download/v0.9.0/rules_docker-v0.9.0.tar.gz"],
 )
 
 load(
-    "@io_bazel_rules_docker//container:container.bzl",
-    "container_pull",
+    "@io_bazel_rules_docker//repositories:repositories.bzl",
     container_repositories = "repositories",
 )
 
 container_repositories()
+
+load(
+    "@io_bazel_rules_docker//repositories:deps.bzl", 
+    container_deps = "deps")
+
+container_deps()
+
+load(
+    "@io_bazel_rules_docker//container:container.bzl",
+    "container_pull",
+)
 
 container_pull(
     name = "java_base",
@@ -32,13 +42,13 @@ load("//third-party:maven_deps.bzl", "maven_jars")
 maven_jars()
 
 # Protobuf
-PROTOBUF_REV = "66dc42d891a4fc8e9190c524fd67961688a37bbe"
+PROTOBUF_REV = "09745575a923640154bcf307fba8aedff47f240a"
 
 PROTOBUF_URL = "https://github.com/protocolbuffers/protobuf/archive/%s.zip" % PROTOBUF_REV
 
 PROTOBUF_PREFIX = "protobuf-%s" % PROTOBUF_REV
 
-PROTOBUF_SHA = "23dcfef4adf06e1db7f1d391c035896a92eec546fff5ef9244b6e7b9ee24aa66"
+PROTOBUF_SHA = "76ee4ba47dec6146872b6cd051ae5bd12897ef0b1523d5aeb56d81a5a4ca885a"
 
 http_archive(
     name = "com_google_protobuf",
@@ -55,9 +65,22 @@ http_archive(
 )
 
 http_archive(
+    name = "com_google_protobuf_deps",
+    sha256 = PROTOBUF_SHA,
+    strip_prefix = PROTOBUF_PREFIX,
+    urls = [PROTOBUF_URL],
+)
+
+load("@com_google_protobuf_deps//:protobuf_deps.bzl", "protobuf_deps")
+
+ # Load common dependencies.
+protobuf_deps()
+
+http_archive(
     name = "io_grpc_grpc_java",
-    strip_prefix = "grpc-java-fe7f043504d66e1b3f674c0514ce794c8a56884e",
-    urls = ["https://github.com/grpc/grpc-java/archive/fe7f043504d66e1b3f674c0514ce794c8a56884e.zip"],
+    sha256 = "3990d711e801cc61efa4eab6987e4847c264b6fb2bead99b270cbfe4039b7871",
+    strip_prefix = "grpc-java-b3ed852c406e4f66f126b7b73a5b3330ac30e6ac",
+    urls = ["https://github.com/grpc/grpc-java/archive/b3ed852c406e4f66f126b7b73a5b3330ac30e6ac.zip"],
 )
 
 load("@io_grpc_grpc_java//:repositories.bzl", "grpc_java_repositories")
