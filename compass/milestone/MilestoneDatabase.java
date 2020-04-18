@@ -186,7 +186,7 @@ public class MilestoneDatabase extends MilestoneSource {
     // The last transaction (currentIndex == lastIndex) contains the siblings for the merkle tree.
     Transaction txSiblings = new Transaction();
     txSiblings.setSignatureFragments(paddedSiblingsTrytes);
-    txSiblings.setAddress(EMPTY_HASH);
+    txSiblings.setAddress(root);
     txSiblings.setCurrentIndex(signatureSource.getSecurity());
     txSiblings.setLastIndex(signatureSource.getSecurity());
     txSiblings.setTimestamp(System.currentTimeMillis() / 1000);
