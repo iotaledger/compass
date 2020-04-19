@@ -78,9 +78,9 @@ protobuf_deps()
 
 http_archive(
     name = "io_grpc_grpc_java",
-    sha256 = "3990d711e801cc61efa4eab6987e4847c264b6fb2bead99b270cbfe4039b7871",
-    strip_prefix = "grpc-java-b3ed852c406e4f66f126b7b73a5b3330ac30e6ac",
-    urls = ["https://github.com/grpc/grpc-java/archive/b3ed852c406e4f66f126b7b73a5b3330ac30e6ac.zip"],
+    sha256 = "2829057f3ae349d85c4494411d9e2d2d130ff199f94622de01c6632c2187c2b6",
+    strip_prefix = "grpc-java-1.26.1",
+    urls = ["https://github.com/grpc/grpc-java/archive/v1.26.1.zip"],
 )
 
 load("@io_grpc_grpc_java//:repositories.bzl", "grpc_java_repositories")
