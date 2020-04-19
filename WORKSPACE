@@ -42,13 +42,13 @@ load("//third-party:maven_deps.bzl", "maven_jars")
 maven_jars()
 
 # Protobuf
-PROTOBUF_REV = "09745575a923640154bcf307fba8aedff47f240a"
-
-PROTOBUF_URL = "https://github.com/protocolbuffers/protobuf/archive/%s.zip" % PROTOBUF_REV
+PROTOBUF_REV = "3.9.1"
 
 PROTOBUF_PREFIX = "protobuf-%s" % PROTOBUF_REV
 
-PROTOBUF_SHA = "76ee4ba47dec6146872b6cd051ae5bd12897ef0b1523d5aeb56d81a5a4ca885a"
+PROTOBUF_URL = "https://github.com/protocolbuffers/protobuf/releases/download/v{}/protobuf-java-{}.zip".format(PROTOBUF_REV, PROTOBUF_REV)
+
+PROTOBUF_SHA = "6a875dc8f90c801bf55fb05e528941cda4c82d77f4f81229810bb05ea43b96e0"
 
 http_archive(
     name = "com_google_protobuf",
