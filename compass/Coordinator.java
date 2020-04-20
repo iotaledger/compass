@@ -228,6 +228,7 @@ public class Coordinator {
   private void start() throws InterruptedException {
     int bootstrapStage = 0;
     int milestonePropagationRetries = 0;
+    int validationRetries = 0;
     this.workerThread = Thread.currentThread();
     shutdownHook();
 
@@ -293,7 +294,14 @@ public class Coordinator {
         }
 
         if (!validateTransactionsToApprove(trunk, branch)) {
-          throw new RuntimeException("Trunk & branch were not consistent!!! T: " + trunk + " B: " + branch);
+          if (++validationRetries >= config.validationAttempts) {
+            throw new RuntimeException("Trunk & branch were not consistent on multiple attempts!!! T: " + trunk + " B: " + branch);
+          } else {
+            // Perform gTTA and Validation again
+            continue;
+          }
+        } else {
+          validationRetries = 0;
         }
 
       } else {
@@ -375,8 +383,11 @@ public class Coordinator {
    * @param branch transaction to be approved by milestone
    * @return {@code true} if the checks passed or didn't take place. Else return {@code false}.
    */
-  private boolean validateTransactionsToApprove(String trunk, String branch) {
+  private boolean validateTransactionsToApprove(String trunk, String branch) throws InterruptedException {
     if (validatorAPIs.size() > 0) {
+
+      // Give tips time to solidify on the validators
+      Thread.sleep(config.validationDelay);
 
       return validatorAPIs.parallelStream().allMatch(validatorApi -> {
         CheckConsistencyResponse response;
