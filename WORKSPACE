@@ -42,13 +42,13 @@ load("//third-party:maven_deps.bzl", "maven_jars")
 maven_jars()
 
 # Protobuf
-PROTOBUF_REV = "09745575a923640154bcf307fba8aedff47f240a"
-
-PROTOBUF_URL = "https://github.com/protocolbuffers/protobuf/archive/%s.zip" % PROTOBUF_REV
+PROTOBUF_REV = "3.9.1"
 
 PROTOBUF_PREFIX = "protobuf-%s" % PROTOBUF_REV
 
-PROTOBUF_SHA = "76ee4ba47dec6146872b6cd051ae5bd12897ef0b1523d5aeb56d81a5a4ca885a"
+PROTOBUF_URL = "https://github.com/protocolbuffers/protobuf/releases/download/v{}/protobuf-java-{}.zip".format(PROTOBUF_REV, PROTOBUF_REV)
+
+PROTOBUF_SHA = "6a875dc8f90c801bf55fb05e528941cda4c82d77f4f81229810bb05ea43b96e0"
 
 http_archive(
     name = "com_google_protobuf",
@@ -78,9 +78,9 @@ protobuf_deps()
 
 http_archive(
     name = "io_grpc_grpc_java",
-    sha256 = "3990d711e801cc61efa4eab6987e4847c264b6fb2bead99b270cbfe4039b7871",
-    strip_prefix = "grpc-java-b3ed852c406e4f66f126b7b73a5b3330ac30e6ac",
-    urls = ["https://github.com/grpc/grpc-java/archive/b3ed852c406e4f66f126b7b73a5b3330ac30e6ac.zip"],
+    sha256 = "2829057f3ae349d85c4494411d9e2d2d130ff199f94622de01c6632c2187c2b6",
+    strip_prefix = "grpc-java-1.26.1",
+    urls = ["https://github.com/grpc/grpc-java/archive/v1.26.1.zip"],
 )
 
 load("@io_grpc_grpc_java//:repositories.bzl", "grpc_java_repositories")
