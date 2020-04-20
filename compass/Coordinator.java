@@ -387,7 +387,7 @@ public class Coordinator {
     if (validatorAPIs.size() > 0) {
 
       // Give tips time to solidify on the validators
-      Thread.sleep(config.validationDelay);
+      Thread.sleep(config.validationDelay * 1000);
 
       return validatorAPIs.parallelStream().allMatch(validatorApi -> {
         CheckConsistencyResponse response;
