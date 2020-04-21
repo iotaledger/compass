@@ -190,12 +190,12 @@ public class MilestoneDatabase extends MilestoneSource {
     txSiblings.setCurrentIndex(signatureSource.getSecurity());
     txSiblings.setLastIndex(signatureSource.getSecurity());
     txSiblings.setTimestamp(System.currentTimeMillis() / 1000);
-    txSiblings.setObsoleteTag(EMPTY_TAG);
+    txSiblings.setObsoleteTag(tag);
     txSiblings.setValue(0);
     txSiblings.setBundle(EMPTY_HASH);
     txSiblings.setTrunkTransaction(trunk);
     txSiblings.setBranchTransaction(branch);
-    txSiblings.setTag(EMPTY_TAG);
+    txSiblings.setTag(tag);
     txSiblings.setNonce(EMPTY_TAG);
 
     // The other transactions contain a signature that signs the siblings and thereby ensures the integrity.
