@@ -56,6 +56,12 @@ public class CoordinatorConfiguration extends BaseConfiguration {
   @Parameter(names = "-validator", description = "Validator nodes to use")
   public List<String> validators = new ArrayList<>();
 
+  @Parameter(names = "-validationAttempts", description = "If tips validation fails, obtain new tips and validate up to this number of attempts.")
+  public int validationAttempts = 10;
+
+  @Parameter(names = "-validationDelay", description = "Obtained tips might not be solid right away on the validators, sleep the specified amount of seconds before validating.")
+  public int validationDelay = 5;
+
   @Parameter(names = "-propagationRetriesThreshold", description = "Number of milestone propagation retries we attempt before failing.")
   public int propagationRetriesThreshold = 5;
 

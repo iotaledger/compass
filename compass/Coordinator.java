@@ -228,6 +228,7 @@ public class Coordinator {
   private void start() throws InterruptedException {
     int bootstrapStage = 0;
     int milestonePropagationRetries = 0;
+    int validationRetries = 0;
     this.workerThread = Thread.currentThread();
     shutdownHook();
 
@@ -292,10 +293,21 @@ public class Coordinator {
           }
         }
 
-        if (!validateTransactionsToApprove(trunk, branch)) {
-          throw new RuntimeException("Trunk & branch were not consistent!!! T: " + trunk + " B: " + branch);
+        try {
+          // This can also throw a RuntimException in case of API Error
+          if (!validateTransactionsToApprove(trunk, branch)) {
+            throw new RuntimeException("Trunk & branch not consistent");
+          }
+        } catch (RuntimeException e) {
+          if (++validationRetries >= config.validationAttempts) {
+            throw new RuntimeException("Trunk & branch were not consistent on multiple attempts!!! T: " + trunk + " B: " + branch);
+          } else {
+            log.warn("Validation failed, #{} of #{} attempts. Trying again...", validationRetries, config.validationAttempts);
+            // Perform gTTA and Validation again
+            continue;
+          }
         }
-
+        validationRetries = 0;
       } else {
         if (bootstrapStage >= 3) {
           config.bootstrap = false;
@@ -375,13 +387,16 @@ public class Coordinator {
    * @param branch transaction to be approved by milestone
    * @return {@code true} if the checks passed or didn't take place. Else return {@code false}.
    */
-  private boolean validateTransactionsToApprove(String trunk, String branch) {
+  private boolean validateTransactionsToApprove(String trunk, String branch) throws InterruptedException {
     if (validatorAPIs.size() > 0) {
+
+      // Give tips time to solidify on the validators
+      Thread.sleep(config.validationDelay * 1000);
 
       return validatorAPIs.parallelStream().allMatch(validatorApi -> {
         CheckConsistencyResponse response;
         try {
-          response = getCheckConsistencyResponseWithRetires(trunk, branch, validatorApi);
+          response = getCheckConsistencyResponseWithRetries(trunk, branch, validatorApi);
           if (!response.getState()) {
             log.error("{} reported invalid consistency: {}", validatorApi.getHost(), response.getInfo());
           }
@@ -442,7 +457,7 @@ public class Coordinator {
     return response;
   }
 
-  private CheckConsistencyResponse getCheckConsistencyResponseWithRetires(String trunk, String branch, IotaAPI api) throws InterruptedException {
+  private CheckConsistencyResponse getCheckConsistencyResponseWithRetries(String trunk, String branch, IotaAPI api) throws InterruptedException {
     CheckConsistencyResponse response = null;
     for(int i = 0; i < config.APIRetries; i++) {
       try {
