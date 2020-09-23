@@ -1,5 +1,9 @@
-Compass
+Deprecated
 =============================
+
+This solution has been deprecated. Please use [Hornet coordinator plug-in](https://docs.iota.org/docs/hornet/1.1/tutorials/set-up-a-private-tangle-hornet) when setting up a private Tangle instead. 
+
+# Compass
 
 Compass is an open-source implementation of an IOTA Network coordinator. 
 
